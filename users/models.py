@@ -53,7 +53,7 @@ class Session(models.Model):
 class PasswordResetToken(models.Model):
     email = models.ForeignKey(User, to_field='email', on_delete=models.CASCADE)
     token = models.TextField()
-    created_at = models.DateField(auto_created=True, auto_now=True, auto_now_add=True)
+    created_at = models.DateField(auto_created=True, auto_now_add=True)
 
 
 class Category(models.Model):
@@ -85,13 +85,13 @@ class Supplier(models.Model):
     last_name = models.CharField(max_length=25)
     api_url = models.TextField()
     api_key = models.CharField(max_length=64)
-    api_type = models.CharField(max_length=15, choices=SupplierApiKeyType.choices)
+    api_type = models.CharField(max_length=20, choices=SupplierApiKeyType.choices)
     currency = models.CharField(max_length=20)
     rate_multipler = models.CharField(max_length=20)
     status = models.CharField(max_length=20, choices=SupplerStatus.choices)
     min_order_amount = models.IntegerField()
     max_order_amount = models.IntegerField()
-    last_sync_at = models.DateField(auto_created=True, auto_now=True, auto_now_add=True)
+    last_sync_at = models.DateField(auto_created=True, auto_now_add=True)
     sync_enabled = models.BooleanField(default=False)
     description = models.TextField(null=True, blank=True)
     support_url = models.CharField(max_length=50)
@@ -108,7 +108,7 @@ class Service(models.Model):
     supplier_price_per_100 = models.FloatField()
     min_quantity = models.IntegerField()
     max_quantity = models.IntegerField()
-    average_time = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True)
+    average_time = models.DateTimeField(auto_created=True, auto_now_add=True)
     refill_enabled = models.BooleanField(default=False)
     cancell_enabled = models.BooleanField(default=True)
     sort_order = models.CharField(max_length=20)
@@ -132,8 +132,8 @@ class Cart(models.Model):
     total_items = models.IntegerField()
     ip_address = models.CharField(max_length=25)
     user_agent = models.CharField(max_length=20, default='Chrome', null=True, blank=True)
-    expires_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True)
-    converted_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True)
+    expires_at = models.DateTimeField(auto_created=True, auto_now_add=True)
+    converted_at = models.DateTimeField(auto_created=True, auto_now_add=True)
 
 class CartItem(models.Model):
     cart_id = models.ForeignKey(Cart, on_delete=models.CASCADE)
@@ -167,21 +167,21 @@ class Order(models.Model):
     remains = models.IntegerField()
     customer_role = models.CharField(max_length=20)
     admin_note = models.CharField(max_length=20)
-    submitted_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True)
-    completed_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True, null=True, blank=True)
-    cancelled_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True, null=True, blank=True)
-    refunded_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True, null=True, blank=True)
+    submitted_at = models.DateTimeField(auto_created=True, auto_now_add=True)
+    completed_at = models.DateTimeField(auto_created=True, auto_now_add=True, null=True, blank=True)
+    cancelled_at = models.DateTimeField(auto_created=True, auto_now_add=True, null=True, blank=True)
+    refunded_at = models.DateTimeField(auto_created=True, auto_now_add=True, null=True, blank=True)
 
 
 class PaymentGateway(models.Model):
     class PaymentGatewaysType(models.TextChoices):
-        crypto = "CRYPTO", 'Crypto',
-        card = "CARD", 'Card',
-        bank_transfer = "BANK_TRANSFER", 'Bank_Transfer',
-        other = "OTHER", 'Other',
+        crypto = "CRYPTO", 'Crypto'
+        card = "CARD", 'Card'
+        bank_transfer = "BANK_TRANSFER", 'Bank_Transfer'
+        other = "OTHER", 'Other'
     
     class PaymentGatewayFeeType(models.TextChoices):
-        percentage = "PERCENTAGE", 'Percentage',
+        percentage = "PERCENTAGE", 'Percentage'
         fixed = "FIXED", 'Fixed'
         both = "BOTH", 'Both'
 
@@ -192,7 +192,7 @@ class PaymentGateway(models.Model):
 
     name = models.CharField(max_length=64, unique=True)
     slug = models.CharField(max_length=64, unique=True)
-    type = models.CharField(max_length=20, choices=PaymentGatewaysType.card, default=PaymentGatewaysType.card)
+    type = models.CharField(max_length=20, choices=PaymentGatewaysType.choices, default=PaymentGatewaysType.card)
     credentials = models.JSONField()
     min_amount = models.FloatField()
     max_amount = models.FloatField()
@@ -202,7 +202,7 @@ class PaymentGateway(models.Model):
     icon = models.CharField(max_length=20)
     description = models.TextField(null=True, blank=True)
     sort_order = models.CharField(max_length=20)
-    status = models.CharField(max_length=20, choices=PaymentGatewayStatus.active, default=PaymentGatewayStatus.active)
+    status = models.CharField(max_length=20, choices=PaymentGatewayStatus.choices, default=PaymentGatewayStatus.active)
     is_default = models.BooleanField(default=False)
     supported_currencies = models.CharField(max_length=64)
 
