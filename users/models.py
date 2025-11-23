@@ -14,6 +14,7 @@ class User(models.Model):
     first_name = models.CharField(max_length=25)
     last_name = models.CharField(max_length=25)
     email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128)
 
     role = models.CharField(
         max_length=10,
