@@ -60,6 +60,7 @@ class Category(models.Model):
     class CategoryStatus(models.TextChoices):
         active = "ACTIVE", "Active"
         inactive = "INACTIVe", "Inactive"
+
     name = models.CharField(max_length=25, unique=True)
     slug = models.CharField(max_length=25, unique=True)
     description = models.TextField()
@@ -123,6 +124,7 @@ class Cart(models.Model):
         active = "ACTIVE", 'Active'
         abandoned = "ADABNDONED", 'Abandoned'
         converted = "CONVERTED", 'Converted'
+
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     session_id = models.ForeignKey(Session, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=CartStatus.choices, default=CartStatus.active)
@@ -143,8 +145,64 @@ class CartItem(models.Model):
     notes = models.CharField(max_length=20)
 
 class Order(models.Model):
+    class OrderStatus(models.TextChoices):
+        pending = "PENDING", 'Pending'
+        proccessing = "PROCCESSING", 'Proccessing'
+        in_progress = "IN_PROGRESS", 'In_progress'
+        completed = "COMPLETED", 'Completed'
+        partial = "PARTIAL", 'Partial',
+        cancelled = "CANCELLED", 'Cancelled',
+        refunded = "REFUNDED", 'Refunded',
+        failed = "FAILED", 'Failed'
+
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
     service_id = models.ForeignKey(Service, on_delete=models.CASCADE)
     order_number = models.IntegerField()
     supplier_order_id = models.IntegerField()
+    link = models.CharField(max_length=65)
+    quantity = models.IntegerField()
+    profit = models.FloatField()
+    status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.pending)
+    start_count = models.IntegerField()
+    remains = models.IntegerField()
+    customer_role = models.CharField(max_length=20)
+    admin_note = models.CharField(max_length=20)
+    submitted_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True)
+    completed_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True, null=True, blank=True)
+    cancelled_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True, null=True, blank=True)
+    refunded_at = models.DateTimeField(auto_created=True, auto_now=True, auto_now_add=True, null=True, blank=True)
+
+
+class PaymentGateway(models.Model):
+    class PaymentGatewaysType(models.TextChoices):
+        crypto = "CRYPTO", 'Crypto',
+        card = "CARD", 'Card',
+        bank_transfer = "BANK_TRANSFER", 'Bank_Transfer',
+        other = "OTHER", 'Other',
     
+    class PaymentGatewayFeeType(models.TextChoices):
+        percentage = "PERCENTAGE", 'Percentage',
+        fixed = "FIXED", 'Fixed'
+        both = "BOTH", 'Both'
+
+    class PaymentGatewayStatus(models.TextChoices):
+        active = "ACTIVE", 'Active'
+        inactive = "INACTIVE", 'Inactive'
+        maintenance = "MAINTENANCE", 'Maintenance'
+
+    name = models.CharField(max_length=64, unique=True)
+    slug = models.CharField(max_length=64, unique=True)
+    type = models.CharField(max_length=20, choices=PaymentGatewaysType.card, default=PaymentGatewaysType.card)
+    credentials = models.JSONField()
+    min_amount = models.FloatField()
+    max_amount = models.FloatField()
+    fee_type = models.CharField(max_length=20, choices=PaymentGatewayFeeType.choices, default=PaymentGatewayFeeType.percentage)
+    fee_percentage = models.FloatField(null=True, blank=True)
+    fee_fixed = models.FloatField(null=True, blank=True)
+    icon = models.CharField(max_length=20)
+    description = models.TextField(null=True, blank=True)
+    sort_order = models.CharField(max_length=20)
+    status = models.CharField(max_length=20, choices=PaymentGatewayStatus.active, default=PaymentGatewayStatus.active)
+    is_default = models.BooleanField(default=False)
+    supported_currencies = models.CharField(max_length=64)
+
