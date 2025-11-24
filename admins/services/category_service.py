@@ -34,7 +34,6 @@ class CategoryService:
         page_obj = paginator.get_page(page)
         
         result = {
-            'success': True,
             'categories': list(page_obj.object_list.values()),
             'pagination': {
                 'current_page': page_obj.number,

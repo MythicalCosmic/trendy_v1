@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import auth_views, category_views
 
+
 app_name = 'users'
 
 urlpatterns = [

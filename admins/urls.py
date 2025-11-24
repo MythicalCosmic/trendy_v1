@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import user_views, category_views
+from .views import user_views, category_views, supplier_views
 
 app_name = 'admins'
 
@@ -22,4 +22,6 @@ urlpatterns = [
     path('categories/<int:category_id>/status', category_views.update_category_status, name='update_category_status'),
     path('categories/reorder', category_views.reorder_categories, name='reorder_categories'),
     path('categories/stats', category_views.get_stats, name='get_category_stats'),
+
+    path('suppliers', supplier_views.list_suppliers, name='list_suppliers'),
 ]

@@ -2,12 +2,20 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.contrib.auth.hashers import make_password
 from users.models import User
+from django.core.cache import cache
 
 
 class UserService:
-    
+    CACHE_TILL = 300
+
     @staticmethod
     def get_all_users(page=1, per_page=20, search=None, role=None, status=None, order_by='-id'):
+        cache_key = f'users:all:{page}:{per_page}:{search}:{status}:{order_by}'
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return cached_data
+        
         queryset = User.objects.only(
             'id', 'first_name', 'last_name', 'email', 'role', 'status', 
             'phone_number', 'country', 'last_login_at', 'api_enabled'
@@ -32,7 +40,7 @@ class UserService:
         paginator = Paginator(queryset, per_page)
         page_obj = paginator.get_page(page)
         
-        return {
+        result = {
             'success': True,
             'users': list(page_obj.object_list.values()),
             'pagination': {
@@ -44,9 +52,16 @@ class UserService:
                 'has_previous': page_obj.has_previous()
             }
         }
+        cache.set(cache_key, result, UserService.CACHE_TILL)
+        return result
     
     @staticmethod
     def get_user_by_id(user_id):
+        cache_key = f"user:id:{user_id}"
+        cache_data = cache.get(cache_key)
+
+        if cache_data:
+            return cache_data
         try:
             user = User.objects.only(
                 'id', 'first_name', 'last_name', 'email', 'role', 'status',
@@ -54,8 +69,7 @@ class UserService:
                 'last_login_at', 'last_login_api', 'preferences'
             ).get(id=user_id)
             
-            return {
-                'success': True,
+            result = {
                 'user': {
                     'id': user.id,
                     'first_name': user.first_name,
@@ -73,6 +87,8 @@ class UserService:
                     'preferences': user.preferences
                 }
             }
+            cache.set(cache_key, result, UserService.CACHE_TILL)
+            return result
         except User.DoesNotExist:
             return {'success': False, 'message': 'User not found'}
     
@@ -162,6 +178,12 @@ class UserService:
     
     @staticmethod
     def get_user_stats():
+        cache_key = 'users:stats'
+        cache_data = cache.get(cache_key)
+
+        if cache_data:
+            return cache_data
+        
         total_users = User.objects.count()
         active_users = User.objects.filter(status='ACTIVE').count()
         suspended_users = User.objects.filter(status='SUSPENDED').count()
@@ -169,7 +191,7 @@ class UserService:
         admin_users = User.objects.filter(role='ADMIN').count()
         reseller_users = User.objects.filter(role='RESELLER').count()
         
-        return {
+        result = {
             'success': True,
             'stats': {
                 'total_users': total_users,
@@ -180,3 +202,5 @@ class UserService:
                 'reseller_users': reseller_users
             }
         }
+        cache.set(cache_key, result, UserService.CACHE_TILL)
+        return result
