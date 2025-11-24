@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trendy API - Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 60px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tagline {
+            color: #9ca3af;
+            font-size: 18px;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Main Content */
+        main {
+            padding: 80px 0;
+        }
+
+        .section {
+            background: #141414;
+            border: 1px solid #1f1f1f;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.15);
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .section-content {
+            color: #b4b4b4;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: #6366f1;
+            background: #1f1f2e;
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .feature-desc {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        .code-block {
+            background: #0d0d0d;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #10b981;
+            overflow-x: auto;
+        }
+
+        .endpoint {
+            color: #6366f1;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        footer {
+            background: #0a0a0a;
+            border-top: 1px solid #1f1f1f;
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        .footer-content {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .team-name {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .heart {
+            color: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 36px;
+            }
+
+            .section {
+                padding: 30px 20px;
+            }
+
+            .section-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 class="logo">Trendy API</h1>
+            <p class="tagline">Powerful REST API for modern SMM services</p>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">⚡</span>
+                    About Trendy
+                </h2>
+                <div class="section-content">
+                    <p>Trendy is a high-performance, scalable API platform designed for social media marketing services. Built with speed and security in mind, it provides a robust foundation for managing users, orders, payments, and services with enterprise-grade reliability.</p>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">🚀</div>
+                            <div class="feature-title">Lightning Fast</div>
+                            <div class="feature-desc">Optimized queries and caching for sub-100ms response times</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔒</div>
+                            <div class="feature-title">Secure by Default</div>
+                            <div class="feature-desc">JWT tokens, API keys, and role-based access control</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-title">Real-time Stats</div>
+                            <div class="feature-desc">Live dashboards and analytics for admins</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔌</div>
+                            <div class="feature-title">RESTful API</div>
+                            <div class="feature-desc">Clean, intuitive endpoints following REST standards</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">🎯</span>
+                    Key Features
+                </h2>
+                <div class="section-content">
+                    <p><strong>Authentication:</strong> Dual authentication system with JWT tokens (3-day expiry) and permanent API keys for integrations.</p>
+                    <p><strong>User Management:</strong> Complete CRUD operations with role-based permissions (Admin, Reseller, User).</p>
+                    <p><strong>Category System:</strong> Organized service categories with SEO-friendly slugs and custom icons.</p>
+                    <p><strong>Order Processing:</strong> Track orders from submission to completion with real-time status updates.</p>
+                    <p><strong>Payment Integration:</strong> Support for multiple payment gateways with automatic fee calculation.</p>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">📡</span>
+                    Quick Start
+                </h2>
+                <div class="section-content">
+                    <p>Get started with Trendy API in minutes:</p>
+                    <div class="code-block">
+<span class="endpoint">POST</span> /api/auth/register<br>
+{<br>
+  "email": "user@example.com",<br>
+  "password": "secure_password",<br>
+  "first_name": "John",<br>
+  "last_name": "Doe",<br>
+  "phone_number": "+1234567890"<br>
+}<br><br>
+<span style="color: #6b7280;">// Returns JWT token instantly</span>
+                    </div>
+                    <p style="margin-top: 20px;">All subsequent requests require authentication header:<br>
+                    <code style="color: #8b5cf6;">Authorization: Bearer &lt;token&gt;</code> or 
+                    <code style="color: #8b5cf6;">Authorization: ApiKey &lt;key&gt;</code></p>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="icon">🏗️</span>
+                    Architecture
+                </h2>
+                <div class="section-content">
+                    <p>Trendy is built on a modern tech stack optimized for performance:</p>
+                    <p><strong>Backend:</strong> Django 5.2 with custom service layer architecture</p>
+                    <p><strong>Database:</strong> PostgreSQL with optimized indexing and query optimization</p>
+                    <p><strong>Authentication:</strong> JWT with PyJWT, SHA-256 hashed API keys</p>
+                    <p><strong>API Design:</strong> RESTful principles with JSON responses</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>Made with <span class="heart">♥</span> by</p>
+                <p class="team-name">Hypernova Team</p>
+                <p style="margin-top: 10px; opacity: 0.6;">© 2025 Trendy API. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
