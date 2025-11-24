@@ -166,7 +166,7 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.pending)
     start_count = models.IntegerField()
     remains = models.IntegerField()
-    customer_role = models.CharField(max_length=20)
+    customer_note = models.CharField(max_length=20)
     admin_note = models.CharField(max_length=20)
     submitted_at = models.DateTimeField(auto_created=True, auto_now_add=True)
     completed_at = models.DateTimeField(auto_created=True, auto_now_add=True, null=True, blank=True)
