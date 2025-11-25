@@ -24,4 +24,6 @@ urlpatterns = [
     path('categories/stats', category_views.get_stats, name='get_category_stats'),
 
     path('suppliers', supplier_views.list_suppliers, name='list_suppliers'),
+    path('suppliers/<int:supplier_id>', supplier_views.get_supplier, name='get_supplier'),
+    path('suppliers/create', supplier_views.create_supplier, name='create_supplier')
 ]
