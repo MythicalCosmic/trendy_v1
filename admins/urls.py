@@ -25,5 +25,11 @@ urlpatterns = [
 
     path('suppliers', supplier_views.list_suppliers, name='list_suppliers'),
     path('suppliers/<int:supplier_id>', supplier_views.get_supplier, name='get_supplier'),
-    path('suppliers/create', supplier_views.create_supplier, name='create_supplier')
+    path('suppliers/create', supplier_views.create_supplier, name='create_supplier'),
+    path('suppliers/<int:supplier_id>/update', supplier_views.update_supplier, name='update_supplier'),
+    path('suppliers/<int:supplier_id>/delete', supplier_views.delete_supplier, name='delete_supplier'),
+    path('suppliers/<int:supplier_id>/status', supplier_views.update_supplier_status, name='update_supplier_status'),
+    path('suppliers/<int:supplier_id>/toggle-sync', supplier_views.toggle_sync, name='toggle_sync'),
+    path('suppliers/<int:supplier_id>/test', supplier_views.test_connection, name='test_connection'),
+    path('suppliers/stats', supplier_views.get_stats, name='get_supplier_stats'),
 ]
