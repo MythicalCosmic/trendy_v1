@@ -98,27 +98,39 @@ class Supplier(models.Model):
     support_url = models.CharField(max_length=50)
     terms_url = models.CharField(max_length=20, null=True, blank=True)
 
+
 class Service(models.Model):
-    category_id = models.ForeignKey(Category, on_delete=models.CASCADE)
-    supplier_id = models.ForeignKey(Supplier, on_delete=models.CASCADE)
+    category_id = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='services')
+    supplier_id = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='services')
     name = models.CharField(max_length=40, unique=True)
-    slug = models.CharField(max_length=40, unique=True)
-    descriptiom = models.TextField(null=True, blank=True)
+    photo = models.ImageField(upload_to='photos/', blank=True, null=True)
+    slug = models.CharField(max_length=40, unique=True, db_index=True)
+    description = models.TextField(null=True, blank=True)  
     supplier_service_id = models.IntegerField()
-    price_per_100 = models.FloatField()
-    supplier_price_per_100 = models.FloatField()
-    min_quantity = models.IntegerField()
-    max_quantity = models.IntegerField()
-    average_time = models.DateTimeField(auto_created=True, auto_now_add=True)
+    price_per_100 = models.DecimalField(max_digits=10, decimal_places=2)  
+    supplier_price_per_100 = models.DecimalField(max_digits=10, decimal_places=2)
+    min_quantity = models.IntegerField(default=10)
+    max_quantity = models.IntegerField(default=100000)
+    average_time = models.CharField(max_length=50, default='1-2 hours') 
     refill_enabled = models.BooleanField(default=False)
-    cancell_enabled = models.BooleanField(default=True)
-    sort_order = models.CharField(max_length=20)
-    is_featured = models.BooleanField(default=False)
-    meta_title = models.CharField(max_length=20)
+    cancel_enabled = models.BooleanField(default=True)  
+    sort_order = models.IntegerField(default=0, db_index=True)  
+    is_featured = models.BooleanField(default=False, db_index=True)
+    status = models.CharField(max_length=20, default='ACTIVE')  
+    meta_title = models.CharField(max_length=100)
     meta_description = models.TextField(null=True, blank=True)
-    total_orders = models.IntegerField()
-    total_completed = models.IntegerField()
-    
+    total_orders = models.IntegerField(default=0)
+    total_completed = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)  
+    updated_at = models.DateTimeField(auto_now=True)  
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        indexes = [
+            models.Index(fields=['slug']),
+            models.Index(fields=['is_featured', 'status']),
+            models.Index(fields=['category_id', 'status']),
+        ]
 
 class Cart(models.Model):
     class CartStatus(models.TextChoices):

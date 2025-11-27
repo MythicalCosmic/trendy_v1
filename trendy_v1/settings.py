@@ -31,6 +31,9 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [ 
+    "unfold",                         
+    "unfold.contrib.filters",         
+    "unfold.contrib.inlines",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -137,4 +140,21 @@ CACHES = {
         'KEY_PREFIX': 'trendy',
         'TIMEOUT': 300,
     }
+}
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+
+STATIC_URL = '/static/'
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+
+UNFOLD = {
+    "SITE_TITLE": "Trendy Admin",
+    "SITE_HEADER": "Trendy Admin",
+    "ENVIRONMENT": "development",  
+    "SHOW_RECENT_ACTIONS": True,
+    "SHOW_CHARTS": True,
 }

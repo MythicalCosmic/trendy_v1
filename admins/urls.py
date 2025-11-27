@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import user_views, category_views, supplier_views
+from .views import user_views, category_views, supplier_views, service_views
 
 app_name = 'admins'
 
@@ -32,4 +32,13 @@ urlpatterns = [
     path('suppliers/<int:supplier_id>/toggle-sync', supplier_views.toggle_sync, name='toggle_sync'),
     path('suppliers/<int:supplier_id>/test', supplier_views.test_connection, name='test_connection'),
     path('suppliers/stats', supplier_views.get_stats, name='get_supplier_stats'),
+
+    path('services', service_views.list_services, name='list_services'),
+    path('services/<int:service_id>', service_views.get_service, name='get_service'),
+    path('services/create', service_views.create_service, name='create_service'),
+    path('services/<int:service_id>/update', service_views.update_service, name='update_service'),
+    path('services/<int:service_id>/delete', service_views.delete_service, name='delete_service'),
+    path('services/<int:service_id>/status', service_views.update_service_status, name='update_service_status'),
+    path('services/<int:service_id>/toggle-featured', service_views.toggle_featured, name='toggle_featured'),
+    path('services/stats', service_views.get_stats, name='get_service_stats'),
 ]
