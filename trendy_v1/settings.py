@@ -58,7 +58,7 @@ MIDDLEWARE = [
     'users.middleware.JSONOnlyMiddleware',
 ]
 
-ROOT_URLCONF = 'trendy_v1.urls'
+ROOT_URLCONF = 'trendy_v1.urls'            
 
 TEMPLATES = [
     {

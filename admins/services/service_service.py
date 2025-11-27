@@ -63,7 +63,8 @@ class ServiceService:
                 },
                 'supplier': {
                     'id': service.supplier_id.id,
-                    'name': f"{service.supplier_id.first_name} {service.supplier_id.last_name}"
+                    'name': f"{service.supplier_id.first_name} {service.supplier_id.last_name}",
+                    'api_url': service.supplier_id.api_url,
                 },
                 'total_orders': service.total_orders,
                 'total_completed': service.total_completed

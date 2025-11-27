@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import auth_views, category_views, supplier_views, service_views
+from .views import auth_views, category_views, supplier_views, service_views,cart_views
 
 
 app_name = 'users'
@@ -21,4 +21,12 @@ urlpatterns = [
     path('services/featured', service_views.get_featured_services, name='featured_services'),
     path('services/category/<str:category_slug>', service_views.get_services_by_category, name='services_by_category'),
     path('services/<str:slug>', service_views.get_service, name='get_service'),
+
+    path('cart', cart_views.get_cart, name='get_cart'),
+    path('cart/add', cart_views.add_to_cart, name='add_to_cart'),
+    path('cart/items/<int:item_id>', cart_views.update_cart_item, name='update_cart_item'),
+    path('cart/items/<int:item_id>/remove', cart_views.remove_from_cart, name='remove_from_cart'),
+    path('cart/clear', cart_views.clear_cart, name='clear_cart'),
+    path('cart/validate', cart_views.validate_cart, name='validate_cart'),
+    path('cart/summary', cart_views.get_cart_summary, name='cart_summary'),
 ]

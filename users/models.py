@@ -134,28 +134,31 @@ class Service(models.Model):
 
 class Cart(models.Model):
     class CartStatus(models.TextChoices):
-        active = "ACTIVE", 'Active'
-        abandoned = "ADABNDONED", 'Abandoned'
-        converted = "CONVERTED", 'Converted'
+        ACTIVE = "ACTIVE", 'Active'
+        ABANDONED = "ABANDONED", 'Abandoned' 
+        CONVERTED = "CONVERTED", 'Converted'
 
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    session_id = models.ForeignKey(Session, on_delete=models.CASCADE)
-    status = models.CharField(max_length=20, choices=CartStatus.choices, default=CartStatus.active)
-    total_amount = models.IntegerField()
-    total_items = models.IntegerField()
-    ip_address = models.CharField(max_length=25)
-    user_agent = models.CharField(max_length=20, default='Chrome', null=True, blank=True)
-    expires_at = models.DateTimeField(auto_created=True, auto_now_add=True)
-    converted_at = models.DateTimeField(auto_created=True, auto_now_add=True)
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='carts')
+    session_id = models.ForeignKey(Session, on_delete=models.CASCADE, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=CartStatus.choices, default=CartStatus.ACTIVE)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  
+    total_items = models.IntegerField(default=0)
+    ip_address = models.CharField(max_length=45) 
+    user_agent = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)  
+    updated_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField(null=True, blank=True) 
+    converted_at = models.DateTimeField(null=True, blank=True) 
 
 class CartItem(models.Model):
-    cart_id = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    cart_id = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     service_id = models.ForeignKey(Service, on_delete=models.CASCADE)
-    link = models.CharField(max_length=64)
+    link = models.URLField(max_length=500)  
     quantity = models.IntegerField()
-    price_per_100 = models.FloatField()
-    total_amount = models.FloatField()
-    notes = models.CharField(max_length=20)
+    price_per_100 = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    notes = models.TextField(null=True, blank=True) 
+    created_at = models.DateTimeField(auto_now_add=True)
 
 class Order(models.Model):
     class OrderStatus(models.TextChoices):
