@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import auth_views, category_views, supplier_views, service_views,cart_views
+from .views import auth_views, category_views, supplier_views, service_views, cart_views, checkout_views, order_views
 
 
 app_name = 'users'
@@ -29,4 +29,19 @@ urlpatterns = [
     path('cart/clear', cart_views.clear_cart, name='clear_cart'),
     path('cart/validate', cart_views.validate_cart, name='validate_cart'),
     path('cart/summary', cart_views.get_cart_summary, name='cart_summary'),
+
+    path('checkout/summary', checkout_views.get_checkout_summary, name='checkout_summary'),
+    path('checkout/initiate', checkout_views.initiate_checkout, name='initiate_checkout'),
+    path('checkout/<str:transaction_id>/complete', checkout_views.complete_checkout, name='complete_checkout'),
+    path('payment/gateways', checkout_views.get_payment_gateways, name='payment_gateways'),
+    path('payment/<str:transaction_id>', checkout_views.get_payment_status, name='payment_status'),
+    path('payments', checkout_views.get_user_payments, name='user_payments'),
+    path('payment/cryptocurrencies', checkout_views.get_cryptocurrencies, name='cryptocurrencies'),
+    path('paymentx/callback/<str:transaction_id>', checkout_views.payment_callback, name='payment_callback'),
+    path('paymentx/success', checkout_views.payment_success, name='payment_success'),  
+    path('paymentx/cancel', checkout_views.payment_cancel, name='payment_cancel'),      
+    
+    path('orders', order_views.get_user_orders, name='user_orders'),
+    path('orders/<str:order_number>', order_views.get_order, name='get_order'),
+    path('ordersx/stats', order_views.get_order_stats, name='order_stats'),
 ]

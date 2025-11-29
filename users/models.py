@@ -33,10 +33,12 @@ class User(models.Model):
     phone_number = models.CharField(max_length=15)
     country = models.CharField(max_length=20, default='RU')
     timezone = models.CharField(max_length=20, default='UTC+5')
-
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
+    currency = models.CharField(max_length=10, default='USD')
     preferences = models.JSONField(default=dict)
 
-    last_login_at = models.DateField(auto_now_add=True)
+    last_login_at = models.DateTimeField(auto_now_add=True)
+
     last_login_api = models.CharField(max_length=20, blank=True)
 
     def __str__(self):
@@ -48,13 +50,15 @@ class Session(models.Model):
     ip_address = models.CharField(max_length=20)
     user_agent = models.CharField(max_length=30, null=True, blank=True, default='Chrome')
     payload = models.CharField(max_length=20, null=True, blank=True)
-    last_activity = models.DateField(auto_created=True, auto_now_add=True)
+    last_activity = models.DateTimeField(auto_now_add=True)
+
 
 
 class PasswordResetToken(models.Model):
     email = models.ForeignKey(User, to_field='email', on_delete=models.CASCADE)
     token = models.TextField()
-    created_at = models.DateField(auto_created=True, auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, auto_created=True)
+
 
 
 class Category(models.Model):
@@ -92,7 +96,7 @@ class Supplier(models.Model):
     status = models.CharField(max_length=20, choices=SupplerStatus.choices)
     min_order_amount = models.IntegerField()
     max_order_amount = models.IntegerField()
-    last_sync_at = models.DateField(auto_created=True, auto_now_add=True)
+    last_sync_at = models.DateTimeField(auto_now_add=True, auto_created=True)
     sync_enabled = models.BooleanField(default=False)
     description = models.TextField(null=True, blank=True)
     support_url = models.CharField(max_length=50)
@@ -162,31 +166,40 @@ class CartItem(models.Model):
 
 class Order(models.Model):
     class OrderStatus(models.TextChoices):
-        pending = "PENDING", 'Pending'
-        proccessing = "PROCCESSING", 'Proccessing'
-        in_progress = "IN_PROGRESS", 'In_progress'
-        completed = "COMPLETED", 'Completed'
-        partial = "PARTIAL", 'Partial',
-        cancelled = "CANCELLED", 'Cancelled',
-        refunded = "REFUNDED", 'Refunded',
-        failed = "FAILED", 'Failed'
+        PENDING = "PENDING", 'Pending'
+        PROCESSING = "PROCESSING", 'Processing'  
+        IN_PROGRESS = "IN_PROGRESS", 'In Progress'
+        COMPLETED = "COMPLETED", 'Completed'
+        PARTIAL = "PARTIAL", 'Partial'
+        CANCELLED = "CANCELLED", 'Cancelled'
+        REFUNDED = "REFUNDED", 'Refunded'
+        FAILED = "FAILED", 'Failed'
 
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     service_id = models.ForeignKey(Service, on_delete=models.CASCADE)
-    order_number = models.IntegerField()
-    supplier_order_id = models.IntegerField()
-    link = models.CharField(max_length=65)
+    order_number = models.CharField(max_length=50, unique=True, db_index=True)  
+    supplier_order_id = models.CharField(max_length=50, null=True, blank=True)  
+    link = models.URLField(max_length=500)
     quantity = models.IntegerField()
-    profit = models.FloatField()
-    status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.pending)
-    start_count = models.IntegerField()
-    remains = models.IntegerField()
-    customer_note = models.CharField(max_length=20)
-    admin_note = models.CharField(max_length=20)
-    submitted_at = models.DateTimeField(auto_created=True, auto_now_add=True)
-    completed_at = models.DateTimeField(auto_created=True, auto_now_add=True, null=True, blank=True)
-    cancelled_at = models.DateTimeField(auto_created=True, auto_now_add=True, null=True, blank=True)
-    refunded_at = models.DateTimeField(auto_created=True, auto_now_add=True, null=True, blank=True)
+    price_paid = models.DecimalField(max_digits=10, decimal_places=2)  
+    profit = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.PENDING)
+    start_count = models.IntegerField(default=0)
+    remains = models.IntegerField(default=0)
+    customer_note = models.TextField(null=True, blank=True)
+    admin_note = models.TextField(null=True, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    refunded_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-submitted_at']
+        indexes = [
+            models.Index(fields=['order_number']),
+            models.Index(fields=['user_id', 'status']),
+        ]
+
 
 
 class PaymentGateway(models.Model):
@@ -222,3 +235,63 @@ class PaymentGateway(models.Model):
     is_default = models.BooleanField(default=False)
     supported_currencies = models.CharField(max_length=64)
 
+
+class Payment(models.Model):
+    class PaymentStatus(models.TextChoices):
+        PENDING = "PENDING", 'Pending'
+        WAITING = "WAITING", 'Waiting for Payment'
+        CONFIRMING = "CONFIRMING", 'Confirming'
+        COMPLETED = "COMPLETED", 'Completed'
+        FAILED = "FAILED", 'Failed'
+        CANCELLED = "CANCELLED", 'Cancelled'
+        REFUNDED = "REFUNDED", 'Refunded'
+        EXPIRED = "EXPIRED", 'Expired'
+    
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    test = models.CharField(default="asd", null=True, blank=True)
+    gateway = models.ForeignKey(PaymentGateway, on_delete=models.SET_NULL, null=True)
+    transaction_id = models.CharField(max_length=100, unique=True, db_index=True)
+    payment_id = models.CharField(max_length=100, null=True, blank=True) 
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=10, default='USD')
+    crypto_currency = models.CharField(max_length=20, null=True, blank=True)  
+    crypto_amount = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
+    payment_url = models.URLField(max_length=500, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
+    payment_data = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['transaction_id']),
+            models.Index(fields=['payment_id']),
+            models.Index(fields=['user_id', 'status']),
+        ]
+
+class Transaction(models.Model):
+    class TransactionType(models.TextChoices):
+        DEPOSIT = "DEPOSIT", 'Deposit'
+        PURCHASE = "PURCHASE", 'Purchase'
+        REFUND = "REFUND", 'Refund'
+        ADMIN_CREDIT = "ADMIN_CREDIT", 'Admin Credit'
+        ADMIN_DEBIT = "ADMIN_DEBIT", 'Admin Debit'
+    
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
+    type = models.CharField(max_length=20, choices=TransactionType.choices)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    balance_before = models.DecimalField(max_digits=10, decimal_places=2)
+    balance_after = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField()
+    reference_id = models.CharField(max_length=100, null=True, blank=True) 
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user_id', 'type']),
+        ]
