@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import auth_views, category_views, supplier_views, service_views, cart_views, checkout_views, order_views
+from .views import auth_views, category_views, supplier_views, service_views, cart_views, checkout_views, order_views, wallet_views
 
 
 app_name = 'users'
@@ -36,10 +36,16 @@ urlpatterns = [
     path('payment/gateways', checkout_views.get_payment_gateways, name='payment_gateways'),
     path('payment/<str:transaction_id>', checkout_views.get_payment_status, name='payment_status'),
     path('payments', checkout_views.get_user_payments, name='user_payments'),
-    path('payment/cryptocurrencies', checkout_views.get_cryptocurrencies, name='cryptocurrencies'),
+    path('paymentx/cryptocurrencies', checkout_views.get_cryptocurrencies, name='cryptocurrencies'),
     path('paymentx/callback/<str:transaction_id>', checkout_views.payment_callback, name='payment_callback'),
     path('paymentx/success', checkout_views.payment_success, name='payment_success'),  
     path('paymentx/cancel', checkout_views.payment_cancel, name='payment_cancel'),      
+
+    path('wallet/balance', wallet_views.get_balance, name='wallet_balance'),
+    path('wallet/add-funds', wallet_views.initiate_add_funds, name='add_funds'),
+    path('wallet/transactions', wallet_views.get_transactions, name='wallet_transactions'),
+    path('wallet/stats', wallet_views.get_wallet_stats, name='wallet_stats'),
+    path('wallet/checkout', wallet_views.checkout_with_balance, name='checkout_with_balance'),
     
     path('orders', order_views.get_user_orders, name='user_orders'),
     path('orders/<str:order_number>', order_views.get_order, name='get_order'),

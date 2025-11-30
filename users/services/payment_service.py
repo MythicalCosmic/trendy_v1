@@ -71,7 +71,7 @@ class PaymentService:
             if gateway.type == 'CRYPTO':
                 result = PaymentService._create_nowpayments_invoice(
                     payment, 
-                    callback_url or f"{PaymentService.BASE_URL}/api/auth/payment/callback/{transaction_id}"
+                    callback_url or f"{PaymentService.BASE_URL}/api/auth/paymentx/callback/{transaction_id}"
                 )
                 if not result['success']:
                     payment.status = 'FAILED'
@@ -123,8 +123,8 @@ class PaymentService:
                 'order_id': payment.transaction_id,
                 'order_description': f'Payment for order {payment.transaction_id}',
                 'ipn_callback_url': callback_url,
-                'success_url': f'{PaymentService.BASE_URL}/api/auth/payment/success?transaction_id={payment.transaction_id}',
-                'cancel_url': f'{PaymentService.BASE_URL}/api/auth/payment/cancel?transaction_id={payment.transaction_id}'
+                'success_url': f'{PaymentService.BASE_URL}/api/auth/paymentx/success?transaction_id={payment.transaction_id}',
+                'cancel_url': f'{PaymentService.BASE_URL}/api/auth/paymentx/cancel?transaction_id={payment.transaction_id}'
             }
             
             response = requests.post(
@@ -296,3 +296,12 @@ class PaymentService:
     @staticmethod
     def _generate_transaction_id():
         return f"TXN-{timezone.now().strftime('%Y%m%d')}-{secrets.token_hex(8).upper()}"
+    
+
+#List to do
+
+#Favorite model
+#Popular Route
+#Order Admin
+#Order History
+#Ticket Support
