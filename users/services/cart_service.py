@@ -214,7 +214,7 @@ class CartService:
             
             for item in cart.items.all():
                 service = item.service_id
-                
+
                 if service.status != 'ACTIVE':
                     errors.append(f'{service.name} is no longer available')
                     continue

@@ -10,8 +10,8 @@ from users.models import Payment, PaymentGateway, User
 
 class PaymentService:
     
-    NOWPAYMENTS_API_KEY = "92BPQEY-XZEMXY5-Q6E80ET-J4HSTQ2"
-    NOWPAYMENTS_BASE_URL = "https://api.nowpayments.io/v1"
+    NOWPAYMENTS_API_KEY = "ECRN5XX-TH54Y71-QZEW0XE-H0MC89N"  #92BPQEY-XZEMXY5-Q6E80ET-J4HSTQ2
+    NOWPAYMENTS_BASE_URL = "https://api-sandbox.nowpayments.io/v1"
     BASE_URL = getattr(settings, 'BASE_URL', 'http://localhost:8000')
     
     @staticmethod
@@ -71,7 +71,7 @@ class PaymentService:
             if gateway.type == 'CRYPTO':
                 result = PaymentService._create_nowpayments_invoice(
                     payment, 
-                    callback_url or f"{PaymentService.BASE_URL}/api/auth/paymentx/callback/{transaction_id}"
+                    callback_url or f"{PaymentService.BASE_URL}/api/paymentx/callback/{transaction_id}"
                 )
                 if not result['success']:
                     payment.status = 'FAILED'
@@ -123,8 +123,8 @@ class PaymentService:
                 'order_id': payment.transaction_id,
                 'order_description': f'Payment for order {payment.transaction_id}',
                 'ipn_callback_url': callback_url,
-                'success_url': f'{PaymentService.BASE_URL}/api/auth/paymentx/success?transaction_id={payment.transaction_id}',
-                'cancel_url': f'{PaymentService.BASE_URL}/api/auth/paymentx/cancel?transaction_id={payment.transaction_id}'
+                'success_url': f'{PaymentService.BASE_URL}/api/paymentx/success?transaction_id={payment.transaction_id}',
+                'cancel_url': f'{PaymentService.BASE_URL}/api/paymentx/cancel?transaction_id={payment.transaction_id}'
             }
             
             response = requests.post(
@@ -220,30 +220,34 @@ class PaymentService:
     def handle_callback(payment_id, status, payment_data):
         try:
             payment = Payment.objects.get(payment_id=payment_id)
-            
+
+            status = status.lower()
+
             status_map = {
                 'finished': 'COMPLETED',
                 'confirmed': 'COMPLETED',
+                'completed': 'COMPLETED',
                 'failed': 'FAILED',
                 'expired': 'EXPIRED',
                 'refunded': 'REFUNDED'
             }
-            
+
             new_status = status_map.get(status, payment.status)
-            
+
             if new_status != payment.status:
                 payment.status = new_status
                 payment.payment_data.update(payment_data)
-                
+
                 if new_status == 'COMPLETED':
                     payment.completed_at = timezone.now()
-                
+
                 payment.save()
-            
+
             return {'success': True, 'message': 'Payment status updated'}
-            
+
         except Payment.DoesNotExist:
             return {'success': False, 'message': 'Payment not found'}
+
     
     @staticmethod
     def get_user_payments(user, page=1, per_page=20):

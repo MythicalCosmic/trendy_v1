@@ -37,7 +37,7 @@ urlpatterns = [
     path('payment/<str:transaction_id>', checkout_views.get_payment_status, name='payment_status'),
     path('payments', checkout_views.get_user_payments, name='user_payments'),
     path('paymentx/cryptocurrencies', checkout_views.get_cryptocurrencies, name='cryptocurrencies'),
-    path('paymentx/callback/<str:transaction_id>', checkout_views.payment_callback, name='payment_callback'),
+    path('payment/callback/<str:transaction_id>', checkout_views.payment_callback, name='payment_callback'),
     path('paymentx/success', checkout_views.payment_success, name='payment_success'),  
     path('paymentx/cancel', checkout_views.payment_cancel, name='payment_cancel'),      
 
@@ -49,5 +49,5 @@ urlpatterns = [
     
     path('orders', order_views.get_user_orders, name='user_orders'),
     path('orders/<str:order_number>', order_views.get_order, name='get_order'),
-    path('ordersx/stats', order_views.get_order_stats, name='order_stats'),
+    path('orders/stats', order_views.get_order_stats, name='order_stats'),
 ]

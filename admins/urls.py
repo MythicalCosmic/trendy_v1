@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import user_views, category_views, supplier_views, service_views
+from .views import user_views, category_views, supplier_views, service_views, order_views
 
 app_name = 'admins'
 
@@ -41,4 +41,9 @@ urlpatterns = [
     path('services/<int:service_id>/status', service_views.update_service_status, name='update_service_status'),
     path('services/<int:service_id>/toggle-featured', service_views.toggle_featured, name='toggle_featured'),
     path('services/stats', service_views.get_stats, name='get_service_stats'),
+
+    path('orders', order_views.list_orders, name='list_orders'),
+    path('orders/<int:order_id>', order_views.get_order, name='get_order'),
+    path('orders/<int:order_id>/status', order_views.update_order_status, name='update_order_status'),
+    path('orders/stats', order_views.get_stats, name='get_order_stats'),
 ]

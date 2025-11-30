@@ -148,10 +148,11 @@ def payment_callback(request, transaction_id):
     from users.models import Payment
     
     result = PaymentService.handle_callback(payment_id, status, data)
-
+    
     if result['success'] and status in ['finished', 'confirmed']:
         try:
             payment = Payment.objects.get(payment_id=payment_id)
+            print(payment)
             
             if not payment.is_processed:
                 from ..services.cart_service import CartService
