@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import auth_views, category_views, supplier_views, service_views, cart_views, checkout_views, order_views, wallet_views
+from .views import auth_views, category_views, supplier_views, service_views, cart_views, checkout_views, order_views, wallet_views, service_features_views
 
 
 app_name = 'users'
@@ -59,4 +59,15 @@ urlpatterns = [
     path('<int:order_id>', order_views.get_order_detail, name='order_detail'),
     path('<int:order_id>/timeline', order_views.get_order_timeline, name='order_timeline'),
     path('<int:order_id>/cancel', order_views.cancel_order, name='cancel_order'),
+
+    path('services/<int:service_id>/comments', service_features_views.get_service_comments, name='get_comments'),
+    path('services/<int:service_id>/comments/add', service_features_views.add_comment, name='add_comment'),
+    path('comments/<int:comment_id>/update', service_features_views.update_comment, name='update_comment'),
+    path('comments/<int:comment_id>/delete', service_features_views.delete_comment, name='delete_comment'),
+    path('comments/<int:comment_id>/helpful', service_features_views.mark_comment_helpful, name='mark_helpful'),
+    path('comments/<int:comment_id>/report', service_features_views.report_comment, name='report_comment'),
+    
+    path('favorites', service_features_views.get_favorites, name='get_favorites'),
+    path('services/<int:service_id>/favorite', service_features_views.toggle_favorite, name='toggle_favorite'),
+    path('services/<int:service_id>/is-favorite', service_features_views.check_favorite, name='check_favorite'),
 ]

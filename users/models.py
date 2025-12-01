@@ -405,3 +405,170 @@ class OrderStatusLog(models.Model):
     
     def __str__(self):
         return f"{self.order_id.order_number}: {self.from_status} → {self.to_status}"
+
+class ServiceComment(models.Model):    
+    class CommentStatus(models.TextChoices):
+        PENDING = "PENDING", "Pending Review"
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
+        FLAGGED = "FLAGGED", "Flagged"
+    
+    service_id = models.ForeignKey(
+        'Service',
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    user_id = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='service_comments'
+    )
+    order_id = models.ForeignKey(
+        'Order',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='comments',
+        help_text="Optional: Link comment to an order"
+    )
+    rating = models.IntegerField(
+        default=5,
+        help_text="Rating from 1 to 5"
+    )
+    comment = models.TextField()
+    status = models.CharField(
+        max_length=10,
+        choices=CommentStatus.choices,
+        default=CommentStatus.PENDING
+    )
+    is_verified_purchase = models.BooleanField(
+        default=False,
+        help_text="True if user has completed an order for this service"
+    )
+    helpful_count = models.IntegerField(default=0)
+    reported_count = models.IntegerField(default=0)
+    admin_reply = models.TextField(null=True, blank=True)
+    replied_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_replies'
+    )
+    replied_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['service_id', 'status', '-created_at']),
+            models.Index(fields=['user_id', '-created_at']),
+            models.Index(fields=['status']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['service_id', 'user_id'],
+                name='unique_user_service_comment'
+            )
+        ]
+    
+    def __str__(self):
+        return f"{self.user_id.email} - {self.service_id.name} ({self.rating}★)"
+
+
+class ServiceFavorite(models.Model):
+    
+    user_id = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='favorite_services'
+    )
+    service_id = models.ForeignKey(
+        'Service',
+        on_delete=models.CASCADE,
+        related_name='favorited_by'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user_id', '-created_at']),
+            models.Index(fields=['service_id']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user_id', 'service_id'],
+                name='unique_user_favorite_service'
+            )
+        ]
+    
+    def __str__(self):
+        return f"{self.user_id.email} ❤️ {self.service_id.name}"
+
+
+class CommentHelpful(models.Model):
+    
+    comment_id = models.ForeignKey(
+        'ServiceComment',
+        on_delete=models.CASCADE,
+        related_name='helpful_votes'
+    )
+    user_id = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['comment_id', 'user_id'],
+                name='unique_helpful_vote'
+            )
+        ]
+    
+    def __str__(self):
+        return f"{self.user_id.email} found comment helpful"
+
+
+class CommentReport(models.Model):
+    
+    class ReportReason(models.TextChoices):
+        SPAM = "SPAM", "Spam"
+        OFFENSIVE = "OFFENSIVE", "Offensive Language"
+        FAKE = "FAKE", "Fake Review"
+        INAPPROPRIATE = "INAPPROPRIATE", "Inappropriate Content"
+        OTHER = "OTHER", "Other"
+    
+    comment_id = models.ForeignKey(
+        'ServiceComment',
+        on_delete=models.CASCADE,
+        related_name='reports'
+    )
+    reported_by = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE
+    )
+    reason = models.CharField(
+        max_length=20,
+        choices=ReportReason.choices
+    )
+    details = models.TextField(null=True, blank=True)
+    resolved = models.BooleanField(default=False)
+    resolved_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resolved_reports'
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['comment_id', 'resolved']),
+        ]

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import user_views, category_views, supplier_views, service_views, order_views
+from .views import user_views, category_views, supplier_views, service_views, order_views, comment_views
 
 app_name = 'admins'
 
@@ -58,4 +58,10 @@ urlpatterns = [
     path('orders/<int:order_id>/status', order_views.update_order_status, name='update_order_status'),
     path('orders/<int:order_id>', order_views.get_order, name='get_order'),
     path('orders', order_views.list_orders, name='list_orders'),
+
+    path('comments/pending', comment_views.get_pending_comments, name='pending_comments'),
+    path('comments/reported', comment_views.get_reported_comments, name='reported_comments'),
+    path('comments/<int:comment_id>/approve', comment_views.approve_comment, name='approve_comment'),
+    path('comments/<int:comment_id>/reject', comment_views.reject_comment, name='reject_comment'),
+    path('comments/<int:comment_id>/reply', comment_views.add_admin_reply, name='admin_reply'),
 ]
