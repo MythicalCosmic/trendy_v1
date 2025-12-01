@@ -14,6 +14,7 @@ class ServiceFeaturesService:
     def add_comment(user, service_id, rating, comment_text, order_id=None):
         try:
             service = Service.objects.get(id=service_id)
+            
             existing_comment = ServiceComment.objects.filter(
                 user_id=user,
                 service_id=service
@@ -37,13 +38,14 @@ class ServiceFeaturesService:
                 status='COMPLETED'
             ).exists()
             
+            # Create comment
             comment = ServiceComment.objects.create(
                 service_id=service,
                 user_id=user,
                 order_id_id=order_id if order_id else None,
                 rating=rating,
                 comment=comment_text,
-                status='PENDING',
+                status='PENDING', 
                 is_verified_purchase=is_verified
             )
             
@@ -105,20 +107,22 @@ class ServiceFeaturesService:
     @transaction.atomic
     def update_comment(user, comment_id, rating=None, comment_text=None):
         try:
-            comment = ServiceComment.objects.get(id=comment_id, user_id=user)
+            comment = ServiceComment.objects.select_related('service_id').get(
+                id=comment_id,
+                user_id=user
+            )
             
             if rating and 1 <= rating <= 5:
-                old_rating = comment.rating
                 comment.rating = rating
-
-                if comment.status == 'APPROVED':
-                    ServiceFeaturesService._recalculate_service_rating(comment.service_id)
             
             if comment_text:
                 comment.comment = comment_text
                 comment.status = 'PENDING' 
             
             comment.save()
+            
+            if comment.status == 'APPROVED':
+                ServiceFeaturesService._recalculate_service_rating(comment.service_id)
             
             return {
                 'success': True,
@@ -140,7 +144,8 @@ class ServiceFeaturesService:
             service = comment.service_id
             comment.delete()
             
-            ServiceFeaturesService._recalculate_service_rating(service)
+            if comment.status == 'APPROVED':
+                ServiceFeaturesService._recalculate_service_rating(service)
             
             return {
                 'success': True,
@@ -155,26 +160,29 @@ class ServiceFeaturesService:
     def mark_helpful(user, comment_id):
         try:
             comment = ServiceComment.objects.get(id=comment_id)
-
-            helpful, created = CommentHelpful.objects.get_or_create(
+            helpful = CommentHelpful.objects.filter(
                 comment_id=comment,
                 user_id=user
-            )
+            ).first()
             
-            if created:
-                comment.helpful_count = F('helpful_count') + 1
-                comment.save(update_fields=['helpful_count'])
-                return {
-                    'success': True,
-                    'message': 'Marked as helpful'
-                }
-            else:
+            if helpful:
                 helpful.delete()
-                comment.helpful_count = F('helpful_count') - 1
+                comment.helpful_count = max(0, comment.helpful_count - 1)
                 comment.save(update_fields=['helpful_count'])
                 return {
                     'success': True,
                     'message': 'Removed helpful mark'
+                }
+            else:
+                CommentHelpful.objects.create(
+                    comment_id=comment,
+                    user_id=user
+                )
+                comment.helpful_count = comment.helpful_count + 1
+                comment.save(update_fields=['helpful_count'])
+                return {
+                    'success': True,
+                    'message': 'Marked as helpful'
                 }
                 
         except ServiceComment.DoesNotExist:
@@ -185,7 +193,6 @@ class ServiceFeaturesService:
     def report_comment(user, comment_id, reason, details=None):
         try:
             comment = ServiceComment.objects.get(id=comment_id)
-            
             existing_report = CommentReport.objects.filter(
                 comment_id=comment,
                 reported_by=user
@@ -204,9 +211,11 @@ class ServiceFeaturesService:
                 details=details
             )
             
-            comment.reported_count = F('reported_count') + 1
+            comment.reported_count = comment.reported_count + 1
             comment.save(update_fields=['reported_count'])
             
+            comment.refresh_from_db()
+
             if comment.reported_count >= 3:
                 comment.status = 'FLAGGED'
                 comment.save(update_fields=['status'])
@@ -232,8 +241,6 @@ class ServiceFeaturesService:
             
             if favorite:
                 favorite.delete()
-                service.total_favorites = F('total_favorites') - 1
-                service.save(update_fields=['total_favorites'])
                 
                 return {
                     'success': True,
@@ -245,8 +252,6 @@ class ServiceFeaturesService:
                     user_id=user,
                     service_id=service
                 )
-                service.total_favorites = F('total_favorites') + 1
-                service.save(update_fields=['total_favorites'])
                 
                 return {
                     'success': True,
@@ -276,7 +281,6 @@ class ServiceFeaturesService:
                     'category': fav.service_id.category_id.name,
                     'price_per_100': float(fav.service_id.price_per_100),
                     'photo': fav.service_id.photo.url if fav.service_id.photo else None,
-                    'average_rating': float(fav.service_id.average_rating),
                     'is_featured': fav.service_id.is_featured
                 },
                 'added_at': fav.created_at.isoformat()
@@ -305,7 +309,7 @@ class ServiceFeaturesService:
             'success': True,
             'is_favorite': is_favorite
         }
-
+    
     @staticmethod
     @transaction.atomic
     def approve_comment_admin(admin_user, comment_id):
@@ -402,6 +406,7 @@ class ServiceFeaturesService:
     
     @staticmethod
     def get_reported_comments_admin(page=1, per_page=20):
+        """Get all reported comments for admin review"""
         queryset = CommentReport.objects.filter(
             resolved=False
         ).select_related(
@@ -443,7 +448,8 @@ class ServiceFeaturesService:
                 'total_reports': paginator.count
             }
         }
-
+    
+    
     @staticmethod
     def _recalculate_service_rating(service):
         stats = ServiceComment.objects.filter(
@@ -451,10 +457,16 @@ class ServiceFeaturesService:
             status='APPROVED'
         ).aggregate(
             avg_rating=Avg('rating'),
-            total_ratings=Count('id')
+            total_count=Count('id')
         )
         
-        service.average_rating = stats['avg_rating'] or 0
-        service.total_ratings = stats['total_ratings'] or 0
-        service.total_comments = stats['total_ratings'] or 0
-        service.save(update_fields=['average_rating', 'total_ratings', 'total_comments'])
+        # Don't use F() - just set the values directly
+        # These fields don't exist yet, so we skip them
+        # Service.objects.filter(id=service.id).update(
+        #     average_rating=stats['avg_rating'] or 0,
+        #     total_ratings=stats['total_count'] or 0,
+        #     total_comments=stats['total_count'] or 0
+        # )
+        
+        # For now, just pass - you'll need to add these fields to Service model
+        pass

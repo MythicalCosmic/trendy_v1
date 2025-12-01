@@ -111,6 +111,24 @@ class Service(models.Model):
     slug = models.CharField(max_length=40, unique=True, db_index=True)
     description = models.TextField(null=True, blank=True)  
     supplier_service_id = models.IntegerField()
+    average_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0.00,
+        help_text="Average rating from comments"
+    )
+    total_ratings = models.IntegerField(
+        default=0,
+        help_text="Total number of ratings"
+    )
+    total_comments = models.IntegerField(
+        default=0,
+        help_text="Total approved comments"
+    )
+    total_favorites = models.IntegerField(
+        default=0,
+        help_text="Total users who favorited this service"
+    )
     price_per_100 = models.DecimalField(max_digits=10, decimal_places=2)  
     supplier_price_per_100 = models.DecimalField(max_digits=10, decimal_places=2)
     min_quantity = models.IntegerField(default=10)
@@ -572,3 +590,288 @@ class CommentReport(models.Model):
         indexes = [
             models.Index(fields=['comment_id', 'resolved']),
         ]
+
+
+class SupportTicket(models.Model):
+    
+    class TicketStatus(models.TextChoices):
+        OPEN = "OPEN", "Open"
+        PENDING = "PENDING", "Pending Customer Response"
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        WAITING = "WAITING", "Waiting for Admin"
+        RESOLVED = "RESOLVED", "Resolved"
+        CLOSED = "CLOSED", "Closed"
+    
+    class TicketPriority(models.TextChoices):
+        LOW = "LOW", "Low"
+        MEDIUM = "MEDIUM", "Medium"
+        HIGH = "HIGH", "High"
+        URGENT = "URGENT", "Urgent"
+    
+    class TicketCategory(models.TextChoices):
+        GENERAL = "GENERAL", "General Inquiry"
+        ORDER = "ORDER", "Order Issue"
+        PAYMENT = "PAYMENT", "Payment Issue"
+        ACCOUNT = "ACCOUNT", "Account Issue"
+        TECHNICAL = "TECHNICAL", "Technical Issue"
+        REFUND = "REFUND", "Refund Request"
+        OTHER = "OTHER", "Other"
+    
+    user_id = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='tickets'
+    )
+    ticket_number = models.CharField(
+        max_length=50,
+        unique=True,
+        db_index=True
+    )
+    subject = models.CharField(max_length=200)
+    category = models.CharField(
+        max_length=20,
+        choices=TicketCategory.choices,
+        default=TicketCategory.GENERAL
+    )
+    priority = models.CharField(
+        max_length=10,
+        choices=TicketPriority.choices,
+        default=TicketPriority.MEDIUM
+    )
+    status = models.CharField(
+        max_length=15,
+        choices=TicketStatus.choices,
+        default=TicketStatus.OPEN
+    )
+
+    assigned_to = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_tickets',
+        help_text="Admin assigned to this ticket"
+    )
+    queue_position = models.IntegerField(
+        default=0,
+        help_text="Position in queue (0 = assigned, >0 = waiting)"
+    )
+
+    order_id = models.ForeignKey(
+        'Order',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tickets'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    first_response_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    
+    rating = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Customer satisfaction rating (1-5)"
+    )
+    feedback = models.TextField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['ticket_number']),
+            models.Index(fields=['user_id', 'status']),
+            models.Index(fields=['assigned_to', 'status']),
+            models.Index(fields=['status', 'priority', 'created_at']),
+            models.Index(fields=['queue_position', 'created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.ticket_number} - {self.subject}"
+
+
+class TicketMessage(models.Model):
+    
+    class MessageType(models.TextChoices):
+        USER = "USER", "User Message"
+        ADMIN = "ADMIN", "Admin Reply"
+        SYSTEM = "SYSTEM", "System Message"
+        NOTE = "NOTE", "Internal Note"
+    
+    ticket_id = models.ForeignKey(
+        'SupportTicket',
+        on_delete=models.CASCADE,
+        related_name='messages'
+    )
+    user_id = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    message_type = models.CharField(
+        max_length=10,
+        choices=MessageType.choices,
+        default=MessageType.USER
+    )
+    message = models.TextField()
+    is_internal = models.BooleanField(
+        default=False,
+        help_text="Internal notes not visible to customer"
+    )
+    
+    attachments = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of attachment URLs"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['ticket_id', 'created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Message in {self.ticket_id.ticket_number}"
+
+
+class TicketAssignment(models.Model):
+    
+    ticket_id = models.ForeignKey(
+        'SupportTicket',
+        on_delete=models.CASCADE,
+        related_name='assignment_history'
+    )
+    assigned_from = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assignments_made_from'
+    )
+    assigned_to = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assignments_received'
+    )
+    assigned_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assignments_made'
+    )
+    reason = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.ticket_id.ticket_number} assigned to {self.assigned_to}"
+
+
+class TicketStatusHistory(models.Model):
+    
+    ticket_id = models.ForeignKey(
+        'SupportTicket',
+        on_delete=models.CASCADE,
+        related_name='status_history'
+    )
+    from_status = models.CharField(max_length=15)
+    to_status = models.CharField(max_length=15)
+    changed_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    reason = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.ticket_id.ticket_number}: {self.from_status} → {self.to_status}"
+
+
+class TicketTag(models.Model):
+    
+    name = models.CharField(max_length=50, unique=True)
+    color = models.CharField(
+        max_length=7,
+        default="#3B82F6",
+        help_text="Hex color code"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
+
+
+class TicketTagRelation(models.Model):
+    
+    ticket_id = models.ForeignKey(
+        'SupportTicket',
+        on_delete=models.CASCADE,
+        related_name='ticket_tags'
+    )
+    tag_id = models.ForeignKey(
+        'TicketTag',
+        on_delete=models.CASCADE
+    )
+    added_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['ticket_id', 'tag_id']
+
+
+class AdminAvailability(models.Model):
+    
+    class AvailabilityStatus(models.TextChoices):
+        ONLINE = "ONLINE", "Online"
+        AWAY = "AWAY", "Away"
+        BUSY = "BUSY", "Busy"
+        OFFLINE = "OFFLINE", "Offline"
+    
+    admin_id = models.OneToOneField(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='availability'
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=AvailabilityStatus.choices,
+        default=AvailabilityStatus.OFFLINE
+    )
+    max_tickets = models.IntegerField(
+        default=10,
+        help_text="Maximum concurrent tickets"
+    )
+    current_tickets = models.IntegerField(default=0)
+    last_activity = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.admin_id.email} - {self.status}"
+    
+    @property
+    def can_accept_tickets(self):
+        return (
+            self.status == self.AvailabilityStatus.ONLINE and 
+            self.current_tickets < self.max_tickets
+        )
