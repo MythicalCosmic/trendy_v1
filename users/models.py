@@ -295,3 +295,113 @@ class Transaction(models.Model):
         indexes = [
             models.Index(fields=['user_id', 'type']),
         ]
+
+class OrderHistory(models.Model):
+    class EventType(models.TextChoices):
+        CREATED = "CREATED", "Order Created"
+        STATUS_CHANGED = "STATUS_CHANGED", "Status Changed"
+        PROGRESS_UPDATE = "PROGRESS_UPDATE", "Progress Updated"
+        CANCELLED = "CANCELLED", "Order Cancelled"
+        REFUNDED = "REFUNDED", "Order Refunded"
+        NOTE_ADDED = "NOTE_ADDED", "Note Added"
+        SUPPLIER_SUBMITTED = "SUPPLIER_SUBMITTED", "Submitted to Supplier"
+        ADMIN_UPDATE = "ADMIN_UPDATE", "Admin Update"
+    
+    order_id = models.ForeignKey(
+        'Order', 
+        on_delete=models.CASCADE, 
+        related_name='history'
+    )
+    event_type = models.CharField(
+        max_length=20, 
+        choices=EventType.choices
+    )
+    old_status = models.CharField(max_length=20, null=True, blank=True)
+    new_status = models.CharField(max_length=20, null=True, blank=True)
+    old_value = models.JSONField(null=True, blank=True)  
+    new_value = models.JSONField(null=True, blank=True)
+    description = models.TextField()
+    performed_by = models.ForeignKey(
+        'User', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='order_actions'
+    )
+    ip_address = models.CharField(max_length=45, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['order_id', '-created_at']),
+            models.Index(fields=['event_type']),
+        ]
+        verbose_name_plural = "Order Histories"
+    
+    def __str__(self):
+        return f"{self.order_id.order_number} - {self.event_type} at {self.created_at}"
+
+
+class OrderNote(models.Model):
+    class NoteType(models.TextChoices):
+        CUSTOMER = "CUSTOMER", "Customer Note"
+        ADMIN = "ADMIN", "Admin Note"
+        SYSTEM = "SYSTEM", "System Note"
+    
+    order_id = models.ForeignKey(
+        'Order', 
+        on_delete=models.CASCADE, 
+        related_name='notes'
+    )
+    note_type = models.CharField(
+        max_length=10, 
+        choices=NoteType.choices,
+        default=NoteType.CUSTOMER
+    )
+    content = models.TextField()
+    created_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    is_visible_to_customer = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['order_id', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.note_type} for {self.order_id.order_number}"
+
+
+class OrderStatusLog(models.Model):    
+    order_id = models.ForeignKey(
+        'Order',
+        on_delete=models.CASCADE,
+        related_name='status_logs'
+    )
+    from_status = models.CharField(max_length=20)
+    to_status = models.CharField(max_length=20)
+    changed_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    reason = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['order_id', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.order_id.order_number}: {self.from_status} → {self.to_status}"

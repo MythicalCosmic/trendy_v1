@@ -48,6 +48,15 @@ urlpatterns = [
     path('wallet/checkout', wallet_views.checkout_with_balance, name='checkout_with_balance'),
     
     path('orders', order_views.get_user_orders, name='user_orders'),
-    path('orders/<str:order_number>', order_views.get_order, name='get_order'),
-    path('orders/stats', order_views.get_order_stats, name='order_stats'),
+    path('ordersx/<str:order_number>', order_views.get_order, name='get_order'),
+    path('ordersx/stats', order_views.get_order_stats, name='order_stats'),
+    path('history', order_views.get_order_history, name='order_history'),
+    path('recent', order_views.get_recent_orders, name='recent_orders'),
+    path('statistics', order_views.get_order_statistics, name='order_statistics'),
+    path('status-counts', order_views.get_status_counts, name='status_counts'),
+    
+    path('track/<str:order_number>', order_views.track_order, name='track_order'),
+    path('<int:order_id>', order_views.get_order_detail, name='order_detail'),
+    path('<int:order_id>/timeline', order_views.get_order_timeline, name='order_timeline'),
+    path('<int:order_id>/cancel', order_views.cancel_order, name='cancel_order'),
 ]
