@@ -248,32 +248,64 @@ class ServiceService:
 
     @staticmethod
     @transaction.atomic
-    def update_service(service_id, **kwargs):
+    def update_service(service_id, data, files=None):
         try:
             service = Service.objects.get(id=service_id)
 
-            if 'name' in kwargs and kwargs['name'] != service.name:
-                if Service.objects.filter(name=kwargs['name']).exists():
-                    return {'success': False, 'message': 'Service with this name already exists'}
-                if 'slug' not in kwargs:
-                    kwargs['slug'] = slugify(kwargs['name'])
+            if "name" in data and data["name"] != service.name:
+                if Service.objects.filter(name=data["name"]).exists():
+                    return {"success": False, "message": "Service with this name already exists"}
 
-            if 'slug' in kwargs and kwargs['slug'] != service.slug:
-                if Service.objects.filter(slug=kwargs['slug']).exists():
-                    return {'success': False, 'message': 'Service with this slug already exists'}
+                if "slug" not in data:
+                    data["slug"] = slugify(data["name"])
 
-            for key, value in kwargs.items():
+            if "slug" in data and data["slug"] != service.slug:
+                if Service.objects.filter(slug=data["slug"]).exists():
+                    return {"success": False, "message": "Service with this slug already exists"}
+
+            # Handle foreign keys separately
+            if "category_id" in data:
+                try:
+                    category = Category.objects.get(id=int(data["category_id"]))
+                    service.category = category
+                except Category.DoesNotExist:
+                    return {"success": False, "message": "Category not found"}
+                except (ValueError, TypeError):
+                    return {"success": False, "message": "Invalid category ID"}
+                # Remove from data dict so it doesn't get set again
+                del data["category_id"]
+            
+            if "supplier_id" in data:
+                try:
+                    supplier = Supplier.objects.get(id=int(data["supplier_id"]))
+                    service.supplier = supplier
+                except Supplier.DoesNotExist:
+                    return {"success": False, "message": "Supplier not found"}
+                except (ValueError, TypeError):
+                    return {"success": False, "message": "Invalid supplier ID"}
+                # Remove from data dict so it doesn't get set again
+                del data["supplier_id"]
+
+            # Handle regular fields
+            for key, value in data.items():
                 if hasattr(service, key):
                     setattr(service, key, value)
+            
+            # Handle file upload
+            if files and "photo" in files:
+                service.photo = files["photo"]
 
             service.save()
             ServiceService._clear_cache()
 
-            return {'success': True, 'service': service, 'message': 'Service updated successfully'}
+            return {"success": True, "service": service, "message": "Service updated successfully"}
+
         except Service.DoesNotExist:
-            return {'success': False, 'message': 'Service not found'}
+            return {"success": False, "message": "Service not found"}
+
         except Exception as e:
-            return {'success': False, 'message': f'Failed to update service: {str(e)}'}
+            return {"success": False, "message": f"Failed to update service: {str(e)}"}
+
 
     @staticmethod
     def delete_service(service_id):

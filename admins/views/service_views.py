@@ -54,6 +54,25 @@ def create_service(request):
     data = request.POST.dict()
     photo = request.FILES.get("photo")
 
+    # Convert string booleans to actual booleans
+    boolean_fields = ['is_featured', 'refill_enabled', 'cancel_enabled']
+    for key in boolean_fields:
+        if key in data:
+            if isinstance(data[key], str):
+                data[key] = data[key].lower() in ['true', '1', 'yes']
+    
+    # Convert numeric strings to numbers
+    numeric_fields = ['price_per_100', 'supplier_price_per_100', 'min_quantity', 'max_quantity', 'category_id', 'supplier_id']
+    for key in numeric_fields:
+        if key in data and data[key]:
+            try:
+                if key in ['price_per_100', 'supplier_price_per_100']:
+                    data[key] = float(data[key])
+                else:
+                    data[key] = int(data[key])
+            except (ValueError, TypeError):
+                pass
+
     required = [
         'name', 'category_id', 'supplier_id', 'price_per_100',
         'supplier_price_per_100', 'min_quantity', 'max_quantity',
@@ -78,17 +97,50 @@ def create_service(request):
     return APIResponse.error(message=result['message'])
 
 
-
 @csrf_exempt
-@require_http_methods(["PUT", "PATCH"])
+@require_http_methods(["POST", "PUT", "PATCH"])
 @require_admin
 def update_service(request, service_id):
-    data, error = parse_json_body(request)
-    if error:
-        return error
+    print("Content-Type:", request.content_type)
+    print("FILES:", request.FILES)
+    print("POST:", request.POST)
     
-    result = ServiceService.update_service(service_id, **data)
-    
+    # Handle both multipart/form-data and JSON
+    if request.content_type and request.content_type.startswith("multipart/form-data"):
+        data = request.POST.dict()
+        files = request.FILES
+        
+        # Convert string booleans to actual booleans
+        boolean_fields = ['is_featured', 'refill_enabled', 'cancel_enabled']
+        for key in boolean_fields:
+            if key in data:
+                # Handle various string representations
+                if isinstance(data[key], str):
+                    data[key] = data[key].lower() in ['true', '1', 'yes']
+                    
+        # Convert numeric strings to numbers
+        numeric_fields = ['price_per_100', 'supplier_price_per_100', 'min_quantity', 'max_quantity', 'category_id', 'supplier_id']
+        for key in numeric_fields:
+            if key in data and data[key]:
+                try:
+                    if key in ['price_per_100', 'supplier_price_per_100']:
+                        data[key] = float(data[key])
+                    else:
+                        data[key] = int(data[key])
+                except (ValueError, TypeError):
+                    pass
+    else:
+        data, error = parse_json_body(request)
+        if error:
+            return error
+        files = None
+
+    result = ServiceService.update_service(
+        service_id=service_id,
+        data=data,
+        files=files
+    )
+
     if result['success']:
         return APIResponse.success(message=result['message'])
     
