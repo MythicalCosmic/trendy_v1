@@ -19,10 +19,8 @@ class OrderService:
             cart = Cart.objects.prefetch_related(
                 Prefetch('items', queryset=CartItem.objects.select_related('service_id'))
             ).get(user_id=user, status='ACTIVE')
-            
             if cart.total_items == 0:
                 return {'success': False, 'message': 'Cart is empty'}
-
             orders_to_create = []
             service_updates = {}
             cart_items = list(cart.items.all())
@@ -1166,4 +1164,4 @@ class OrderService:
     def _generate_order_number():
         timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
         random_part = secrets.token_hex(4).upper()
-        return f"ORD-{timestamp-{random_part}}"
+        return f"ORD-{timestamp}-{random_part}"
