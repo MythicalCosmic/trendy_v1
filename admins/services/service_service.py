@@ -264,16 +264,16 @@ class ServiceService:
                     return {"success": False, "message": "Service with this slug already exists"}
 
             # Handle foreign keys separately
-            if "category_id" in data:
+            category_id = data.get("category_id")
+            if category_id is not None:
                 try:
-                    category = Category.objects.get(id=int(data["category_id"]))
+                    category = Category.objects.get(id=int(category_id))
                     service.category = category
-                except Category.DoesNotExist:
-                    return {"success": False, "message": "Category not found"}
-                except (ValueError, TypeError):
+                except (Category.DoesNotExist, ValueError, TypeError):
                     return {"success": False, "message": "Invalid category ID"}
-                # Remove from data dict so it doesn't get set again
-                del data["category_id"]
+            print("RAW DATA:", data)
+            print("CATEGORY_ID TYPE:", type(data.get("category_id")), "VALUE:", data.get("category_id"))
+
             
             if "supplier_id" in data:
                 try:
@@ -287,9 +287,15 @@ class ServiceService:
                 del data["supplier_id"]
 
             # Handle regular fields
+            skip_keys = ["category_id", "supplier_id"]
+
             for key, value in data.items():
+                if key in skip_keys:
+                    continue  # Do NOT assign category_id or supplier_id here
+
                 if hasattr(service, key):
                     setattr(service, key, value)
+
             
             # Handle file upload
             if files and "photo" in files:
