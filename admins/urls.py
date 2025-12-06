@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import user_views, category_views, supplier_views, service_views, order_views, comment_views
+from users.views import ticket_views
 
 app_name = 'admins'
 
@@ -64,4 +65,12 @@ urlpatterns = [
     path('comments/<int:comment_id>/approve', comment_views.approve_comment, name='approve_comment'),
     path('comments/<int:comment_id>/reject', comment_views.reject_comment, name='reject_comment'),
     path('comments/<int:comment_id>/reply', comment_views.add_admin_reply, name='admin_reply'),
+
+    path('tickets/', ticket_views.admin_get_all_tickets, name='admin_all_tickets'),
+    path('tickets/my/', ticket_views.admin_get_my_tickets, name='admin_my_tickets'),
+    path('tickets/<int:ticket_id>/take/', ticket_views.admin_take_ticket, name='admin_take_ticket'),
+    path('tickets/<int:ticket_id>/reply/', ticket_views.admin_reply, name='admin_reply'),
+    path('tickets/<int:ticket_id>/status/', ticket_views.admin_update_status, name='admin_update_status'),
+    path('tickets/<int:ticket_id>/assign/', ticket_views.admin_assign_ticket, name='admin_assign_ticket'),
+    path('tickets/statistics/', ticket_views.admin_statistics, name='admin_statistics'),
 ]

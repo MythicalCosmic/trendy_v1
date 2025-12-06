@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import auth_views, category_views, supplier_views, service_views, cart_views, checkout_views, order_views, wallet_views, service_features_views
+from .views import auth_views, category_views, supplier_views, service_views, cart_views, checkout_views, order_views, wallet_views, service_features_views, ticket_views
 
 
 app_name = 'users'
@@ -70,4 +70,12 @@ urlpatterns = [
     path('favorites', service_features_views.get_favorites, name='get_favorites'),
     path('services/<int:service_id>/favorite', service_features_views.toggle_favorite, name='toggle_favorite'),
     path('services/<int:service_id>/is-favorite', service_features_views.check_favorite, name='check_favorite'),
+
+    path('tickets/create/', ticket_views.create_ticket, name='create_ticket'),
+    path('tickets/my/', ticket_views.get_my_tickets, name='my_tickets'),
+    path('tickets/<int:ticket_id>/', ticket_views.get_ticket_details, name='ticket_details'),
+    path('tickets/<int:ticket_id>/message/', ticket_views.add_message, name='add_message'),
+    path('tickets/<int:ticket_id>/close/', ticket_views.close_ticket, name='close_ticket'),
+    path('tickets/<int:ticket_id>/queue/', ticket_views.get_queue_position, name='queue_position'),
+    path('tickets/queue/stats/', ticket_views.get_queue_stats, name='queue_stats'),
 ]

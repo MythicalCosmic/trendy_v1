@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [ 
+    'daphne',
     "unfold",                         
     "unfold.contrib.filters",         
     "unfold.contrib.inlines",
@@ -48,6 +49,9 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
+ASGI_APPLICATION = 'trendy.asgi.application'
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -57,7 +61,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'users.middleware.JSONOnlyMiddleware',
+    # 'users.middleware.JSONOnlyMiddleware',
 ]
 
 ROOT_URLCONF = 'trendy_v1.urls'            
@@ -76,6 +80,15 @@ TEMPLATES = [
         },
     },
 ]
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('172.18.74.18', 6379)],
+        },
+    },
+}
 
 WSGI_APPLICATION = 'trendy_v1.wsgi.application'
 
@@ -166,3 +179,10 @@ CORS_ALLOWED_ORIGINS = [
             "https://your-frontend-domain.com",
             # Add other allowed origins as needed
 ]
+import os
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760 

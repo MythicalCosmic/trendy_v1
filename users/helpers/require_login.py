@@ -1,7 +1,8 @@
 import jwt
 from functools import wraps
-from django.http import JsonResponse
 from django.conf import settings
+from rest_framework.response import Response  # ✅ Use DRF Response
+from rest_framework import status  # ✅ Use DRF status codes
 from users.models import User, Session
 
 JWT_SECRET = getattr(settings, 'JWT_SECRET_KEY', settings.SECRET_KEY)
@@ -13,27 +14,47 @@ def user_required(view_func):
         token = request.headers.get("Authorization")
 
         if not token:
-            return JsonResponse({"message": "Missing token"}, status=401)
+            return Response(
+                {"message": "Missing token"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         if token.startswith("Bearer "):
             token = token.split(" ")[1]
+            
         try:
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
         except jwt.ExpiredSignatureError:
-            return JsonResponse({"message": "Token expired"}, status=401)
+            return Response(
+                {"message": "Token expired"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
         except jwt.InvalidTokenError:
-            return JsonResponse({"message": "Invalid token"}, status=401)
+            return Response(
+                {"message": "Invalid token"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
         user_id = payload.get("user_id")
 
         try:
             user = User.objects.only("id", "role", "status").get(id=user_id)
         except User.DoesNotExist:
-            return JsonResponse({"message": "User not found"}, status=404)
+            return Response(
+                {"message": "User not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         if not Session.objects.filter(user_id=user_id, payload=token[:20]).exists():
-            return JsonResponse({"message": "Session expired"}, status=401)
+            return Response(
+                {"message": "Session expired"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
+        # ✅ IMPORTANT: Set request.user for DRF
         request.user = user
+        request._dont_enforce_csrf_checks = True  # Skip CSRF for API
+        
         return view_func(request, *args, **kwargs)
 
     return wrapper

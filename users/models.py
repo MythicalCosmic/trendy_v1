@@ -104,8 +104,8 @@ class Supplier(models.Model):
 
 
 class Service(models.Model):
-    category_id = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='services')
-    supplier_id = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='services')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='services')
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='services')
     name = models.CharField(max_length=40, unique=True)
     photo = models.ImageField(upload_to='photos/', blank=True, null=True)
     slug = models.CharField(max_length=40, unique=True, db_index=True)

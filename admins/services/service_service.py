@@ -18,7 +18,7 @@ class ServiceService:
         if cached_data:
             return cached_data
         
-        queryset = Service.objects.select_related('category_id', 'supplier_id').filter(status=status)
+        queryset = Service.objects.select_related('category', 'supplier').filter(status=status)
 
         if search:
             queryset = queryset.filter(
@@ -93,7 +93,7 @@ class ServiceService:
         if cached_data:
             return cached_data
 
-        services = Service.objects.select_related('category_id').filter(
+        services = Service.objects.select_related('category').filter(
             status='ACTIVE', 
             is_featured=True
         ).order_by('sort_order')[:limit]
@@ -126,7 +126,7 @@ class ServiceService:
         except Category.DoesNotExist:
             return {'success': False, 'message': 'Category not found'}
 
-        queryset = Service.objects.select_related('supplier_id').filter(
+        queryset = Service.objects.select_related('supplier').filter(
             category_id=category,
             status='ACTIVE'
         ).order_by('sort_order', 'name')
@@ -171,7 +171,7 @@ class ServiceService:
             return cached_data
 
         try:
-            service = Service.objects.select_related('category_id', 'supplier_id').get(id=service_id)
+            service = Service.objects.select_related('category', 'supplier').get(id=service_id)
             result = {
                 'success': True,
                 'service': ServiceService._serialize_service(service, full=True)
@@ -190,7 +190,7 @@ class ServiceService:
             return cached_data
 
         try:
-            service = Service.objects.select_related('category_id', 'supplier_id').get(slug=slug, status='ACTIVE')
+            service = Service.objects.select_related('category', 'supplier').get(slug=slug, status='ACTIVE')
             result = {
                 'success': True,
                 'service': ServiceService._serialize_service(service, full=False)
@@ -219,8 +219,8 @@ class ServiceService:
 
             service = Service.objects.create(
                 name=name,
-                category_id_id=category_id,
-                supplier_id_id=supplier_id,
+                category=category_id,
+                supplier=supplier_id,
                 slug=slug,
                 photo=photo,
                 description=description,
@@ -250,67 +250,80 @@ class ServiceService:
     @transaction.atomic
     def update_service(service_id, data, files=None):
         try:
-            service = Service.objects.get(id=service_id)
+                service = Service.objects.get(id=service_id)
 
-            if "name" in data and data["name"] != service.name:
-                if Service.objects.filter(name=data["name"]).exists():
-                    return {"success": False, "message": "Service with this name already exists"}
+                # CRITICAL: Work with a real mutable dict
+                data = dict(data)
 
-                if "slug" not in data:
-                    data["slug"] = slugify(data["name"])
+                # === Handle name & slug ===
+                if "name" in data and data["name"] != service.name:
+                    if Service.objects.filter(name=data["name"]).exclude(id=service_id).exists():
+                        return {"success": False, "message": "Service with this name already exists"}
+                    if "slug" not in data or not data["slug"]:
+                        data["slug"] = slugify(data["name"])
 
-            if "slug" in data and data["slug"] != service.slug:
-                if Service.objects.filter(slug=data["slug"]).exists():
-                    return {"success": False, "message": "Service with this slug already exists"}
+                if "slug" in data and data["slug"] != service.slug:
+                    if Service.objects.filter(slug=data["slug"]).exclude(id=service_id).exists():
+                        return {"success": False, "message": "Service with this slug already exists"}
 
-            # Handle foreign keys separately
-            category_id = data.get("category_id")
-            if category_id is not None:
-                try:
-                    category = Category.objects.get(id=int(category_id))
-                    service.category = category
-                except (Category.DoesNotExist, ValueError, TypeError):
-                    return {"success": False, "message": "Invalid category ID"}
-            print("RAW DATA:", data)
-            print("CATEGORY_ID TYPE:", type(data.get("category_id")), "VALUE:", data.get("category_id"))
+                # === Handle category_id ===
+                if "category_id" in data:
+                    try:
+                        category_id = data.pop("category_id")  # Remove it!
+                        if category_id == "" or category_id is None:
+                            service.category = None
+                        else:
+                            category = Category.objects.get(id=int(category_id))
+                            service.category = category
+                    except Category.DoesNotExist:
+                        return {"success": False, "message": "Category not found"}
+                    except (ValueError, TypeError):
+                        return {"success": False, "message": "Invalid category_id"}
 
-            
-            if "supplier_id" in data:
-                try:
-                    supplier = Supplier.objects.get(id=int(data["supplier_id"]))
-                    service.supplier = supplier
-                except Supplier.DoesNotExist:
-                    return {"success": False, "message": "Supplier not found"}
-                except (ValueError, TypeError):
-                    return {"success": False, "message": "Invalid supplier ID"}
-                # Remove from data dict so it doesn't get set again
-                del data["supplier_id"]
+                # === Handle supplier_id ===
+                if "supplier_id" in data:
+                    try:
+                        supplier_id = data.pop("supplier_id")  # Remove it!
+                        if supplier_id == "" or supplier_id is None:
+                            service.supplier = None
+                        else:
+                            supplier = Supplier.objects.get(id=int(supplier_id))
+                            service.supplier = supplier
+                    except Supplier.DoesNotExist:
+                        return {"success": False, "message": "Supplier not found"}
+                    except (ValueError, TypeError):
+                        return {"success": False, "message": "Invalid supplier_id"}
 
-            # Handle regular fields
-            skip_keys = ["category_id", "supplier_id"]
+                # === Now safely assign all remaining fields ===
+                for key, value in data.items():
+                    if hasattr(service, key):
+                        setattr(service, key, value)
 
-            for key, value in data.items():
-                if key in skip_keys:
-                    continue  # Do NOT assign category_id or supplier_id here
+                # === File upload ===
+                if files and "photo" in files:
+                    service.photo = files["photo"]
 
-                if hasattr(service, key):
-                    setattr(service, key, value)
+                # === DEBUG: Remove this later ===
+                print("About to save service.category_id =", service.category_id)
+                print("About to save service.supplier_id =", service.supplier_id)
 
-            
-            # Handle file upload
-            if files and "photo" in files:
-                service.photo = files["photo"]
+                service.save()
+                ServiceService._clear_cache()
 
-            service.save()
-            ServiceService._clear_cache()
-
-            return {"success": True, "service": service, "message": "Service updated successfully"}
+                return {
+                    "success": True,
+                    "message": "Service updated successfully",
+                    "data": {
+                        "id": service.id,
+                        "category_id": service.category_id,
+                        "supplier_id": service.supplier_id
+                    }
+                }
 
         except Service.DoesNotExist:
             return {"success": False, "message": "Service not found"}
-
         except Exception as e:
-            return {"success": False, "message": f"Failed to update service: {str(e)}"}
+            return {"success": False, "message": f"Error: {str(e)}"}
 
 
     @staticmethod
