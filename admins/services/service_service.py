@@ -56,16 +56,19 @@ class ServiceService:
                 'is_featured': service.is_featured,
                 'refill_enabled': service.refill_enabled,
                 'cancel_enabled': service.cancel_enabled,
+                'status': service.status,
                 'category': {
-                    'id': service.category_id.id,
-                    'name': service.category_id.name,
-                    'slug': service.category_id.slug
+                    'id': service.category.id,
+                    'name': service.category.name,
+                    'slug': service.category.slug
                 },
                 'supplier': {
-                    'id': service.supplier_id.id,
-                    'name': f"{service.supplier_id.first_name} {service.supplier_id.last_name}",
-                    'api_url': service.supplier_id.api_url,
+                    'id': service.supplier.id,
+                    'name': f"{service.supplier.first_name} {service.supplier.last_name}",
+                    'api_url': service.supplier.api_url,
                 },
+                'supplier_service_id': service.supplier_service_id,
+                'supplier_price_per_100': float(service.supplier_price_per_100),
                 'total_orders': service.total_orders,
                 'total_completed': service.total_completed
             })
@@ -105,7 +108,7 @@ class ServiceService:
                 'slug': s.slug,
                 'photo': s.photo.url if s.photo else None,
                 'price_per_100': float(s.price_per_100),
-                'category_name': s.category_id.name,
+                'category_name': s.category.name,
                 'average_time': s.average_time
             } for s in services]
         }
@@ -127,7 +130,7 @@ class ServiceService:
             return {'success': False, 'message': 'Category not found'}
 
         queryset = Service.objects.select_related('supplier').filter(
-            category_id=category,
+            category=category,
             status='ACTIVE'
         ).order_by('sort_order', 'name')
 
@@ -138,7 +141,7 @@ class ServiceService:
             'id': s.id,
             'name': s.name,
             'slug': s.slug,
-            "photo": request.build_absolute_uri(s.photo.url),
+            "photo": request.build_absolute_uri(s.photo.url) if s.photo else None,
             'description': s.description,
             'price_per_100': float(s.price_per_100),
             'min_quantity': s.min_quantity,
@@ -219,8 +222,8 @@ class ServiceService:
 
             service = Service.objects.create(
                 name=name,
-                category=category_id,
-                supplier=supplier_id,
+                category_id=category_id,
+                supplier_id=supplier_id,
                 slug=slug,
                 photo=photo,
                 description=description,
@@ -250,81 +253,76 @@ class ServiceService:
     @transaction.atomic
     def update_service(service_id, data, files=None):
         try:
-                service = Service.objects.get(id=service_id)
+            service = Service.objects.select_related('category', 'supplier').get(id=service_id)
 
-                # CRITICAL: Work with a real mutable dict
-                data = dict(data)
+            # CRITICAL: Work with a real mutable dict
+            data = dict(data)
 
-                # === Handle name & slug ===
-                if "name" in data and data["name"] != service.name:
-                    if Service.objects.filter(name=data["name"]).exclude(id=service_id).exists():
-                        return {"success": False, "message": "Service with this name already exists"}
-                    if "slug" not in data or not data["slug"]:
-                        data["slug"] = slugify(data["name"])
+            # === Handle name & slug ===
+            if "name" in data and data["name"] != service.name:
+                if Service.objects.filter(name=data["name"]).exclude(id=service_id).exists():
+                    return {"success": False, "message": "Service with this name already exists"}
+                if "slug" not in data or not data["slug"]:
+                    data["slug"] = slugify(data["name"])
 
-                if "slug" in data and data["slug"] != service.slug:
-                    if Service.objects.filter(slug=data["slug"]).exclude(id=service_id).exists():
-                        return {"success": False, "message": "Service with this slug already exists"}
+            if "slug" in data and data["slug"] != service.slug:
+                if Service.objects.filter(slug=data["slug"]).exclude(id=service_id).exists():
+                    return {"success": False, "message": "Service with this slug already exists"}
 
-                # === Handle category_id ===
-                if "category_id" in data:
-                    try:
-                        category_id = data.pop("category_id")  # Remove it!
-                        if category_id == "" or category_id is None:
-                            service.category = None
-                        else:
-                            category = Category.objects.get(id=int(category_id))
-                            service.category = category
-                    except Category.DoesNotExist:
-                        return {"success": False, "message": "Category not found"}
-                    except (ValueError, TypeError):
-                        return {"success": False, "message": "Invalid category_id"}
+            # === Handle category_id ===
+            if "category_id" in data:
+                try:
+                    category_id = data.pop("category_id")
+                    if category_id == "" or category_id is None:
+                        service.category = None
+                    else:
+                        category = Category.objects.get(id=int(category_id))
+                        service.category = category
+                except Category.DoesNotExist:
+                    return {"success": False, "message": "Category not found"}
+                except (ValueError, TypeError):
+                    return {"success": False, "message": "Invalid category_id"}
 
-                # === Handle supplier_id ===
-                if "supplier_id" in data:
-                    try:
-                        supplier_id = data.pop("supplier_id")  # Remove it!
-                        if supplier_id == "" or supplier_id is None:
-                            service.supplier = None
-                        else:
-                            supplier = Supplier.objects.get(id=int(supplier_id))
-                            service.supplier = supplier
-                    except Supplier.DoesNotExist:
-                        return {"success": False, "message": "Supplier not found"}
-                    except (ValueError, TypeError):
-                        return {"success": False, "message": "Invalid supplier_id"}
+            # === Handle supplier_id ===
+            if "supplier_id" in data:
+                try:
+                    supplier_id = data.pop("supplier_id")
+                    if supplier_id == "" or supplier_id is None:
+                        service.supplier = None
+                    else:
+                        supplier = Supplier.objects.get(id=int(supplier_id))
+                        service.supplier = supplier
+                except Supplier.DoesNotExist:
+                    return {"success": False, "message": "Supplier not found"}
+                except (ValueError, TypeError):
+                    return {"success": False, "message": "Invalid supplier_id"}
 
-                # === Now safely assign all remaining fields ===
-                for key, value in data.items():
-                    if hasattr(service, key):
-                        setattr(service, key, value)
+            # === Now safely assign all remaining fields ===
+            for key, value in data.items():
+                if hasattr(service, key):
+                    setattr(service, key, value)
 
-                # === File upload ===
-                if files and "photo" in files:
-                    service.photo = files["photo"]
+            # === File upload ===
+            if files and "photo" in files:
+                service.photo = files["photo"]
 
-                # === DEBUG: Remove this later ===
-                print("About to save service.category_id =", service.category_id)
-                print("About to save service.supplier_id =", service.supplier_id)
+            service.save()
+            ServiceService._clear_cache()
 
-                service.save()
-                ServiceService._clear_cache()
-
-                return {
-                    "success": True,
-                    "message": "Service updated successfully",
-                    "data": {
-                        "id": service.id,
-                        "category_id": service.category_id,
-                        "supplier_id": service.supplier_id
-                    }
+            return {
+                "success": True,
+                "message": "Service updated successfully",
+                "data": {
+                    "id": service.id,
+                    "category_id": service.category.id if service.category else None,
+                    "supplier_id": service.supplier.id if service.supplier else None
                 }
+            }
 
         except Service.DoesNotExist:
             return {"success": False, "message": "Service not found"}
         except Exception as e:
             return {"success": False, "message": f"Error: {str(e)}"}
-
 
     @staticmethod
     def delete_service(service_id):
@@ -400,9 +398,9 @@ class ServiceService:
             'cancel_enabled': service.cancel_enabled,
             'is_featured': service.is_featured,
             'category': {
-                'id': service.category_id.id,
-                'name': service.category_id.name,
-                'slug': service.category_id.slug
+                'id': service.category.id,
+                'name': service.category.name,
+                'slug': service.category.slug
             }
         }
 
@@ -417,8 +415,8 @@ class ServiceService:
                 'total_orders': service.total_orders,
                 'total_completed': service.total_completed,
                 'supplier': {
-                    'id': service.supplier_id.id,
-                    'name': f"{service.supplier_id.first_name} {service.supplier_id.last_name}"
+                    'id': service.supplier.id,
+                    'name': f"{service.supplier.first_name} {service.supplier.last_name}"
                 }
             })
 

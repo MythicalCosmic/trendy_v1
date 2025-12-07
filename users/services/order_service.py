@@ -138,7 +138,7 @@ class OrderService:
             return cached
         
         try:
-            order = Order.objects.select_related('service_id__category_id').get(
+            order = Order.objects.select_related('service_id__category').get(
                 order_number=order_number,
                 user_id=user
             )
@@ -151,7 +151,7 @@ class OrderService:
                     'service': {
                         'id': order.service_id.id,
                         'name': order.service_id.name,
-                        'category': order.service_id.category_id.name
+                        'category': order.service_id.category.name
                     },
                     'link': order.link,
                     'quantity': order.quantity,
@@ -232,13 +232,13 @@ class OrderService:
     @staticmethod
     def get_all_orders_admin(page=1, per_page=20, status=None, user_id=None, search=None, order_by='-submitted_at'):
         queryset = Order.objects.select_related(
-            'user_id', 'service_id__category_id'
+            'user_id', 'service_id__category'
         ).only(
             'id', 'order_number', 'link', 'quantity', 'price_paid', 'profit',
             'status', 'start_count', 'remains', 'customer_note', 'admin_note',
             'submitted_at', 'completed_at',
             'user_id__id', 'user_id__email', 'user_id__first_name', 'user_id__last_name',
-            'service_id__id', 'service_id__name', 'service_id__category_id__name'
+            'service_id__id', 'service_id__name', 'service_id__category__name'
         )
         
 
@@ -271,7 +271,7 @@ class OrderService:
                 'service': {
                     'id': order.service_id.id,
                     'name': order.service_id.name,
-                    'category': order.service_id.category_id.name
+                    'category': order.service_id.category.name
                 },
                 'link': order.link,
                 'quantity': order.quantity,
@@ -302,7 +302,7 @@ class OrderService:
     def get_order_by_id_admin(order_id):
         try:
             order = Order.objects.select_related(
-                'user_id', 'service_id__category_id'
+                'user_id', 'service_id__category'
             ).get(id=order_id)
             
             return {
@@ -319,7 +319,7 @@ class OrderService:
                     'service': {
                         'id': order.service_id.id,
                         'name': order.service_id.name,
-                        'category': order.service_id.category_id.name,
+                        'category': order.service_id.category.name,
                         'supplier_price': float(order.service_id.supplier_price_per_100)
                     },
                     'link': order.link,
@@ -565,7 +565,7 @@ class OrderService:
         top_services = Order.objects.filter(
             submitted_at__gte=cutoff_date
         ).values(
-            'service_id__id', 'service_id__name', 'service_id__category_id__name'
+            'service_id__id', 'service_id__name', 'service_id__category__name'
         ).annotate(
             order_count=Count('id'),
             total_revenue=Sum('price_paid'),
@@ -578,7 +578,7 @@ class OrderService:
                 {
                     'service_id': s['service_id__id'],
                     'service_name': s['service_id__name'],
-                    'category': s['service_id__category_id__name'],
+                    'category': s['service_id__category__name'],
                     'order_count': s['order_count'],
                     'revenue': float(s['total_revenue'] or 0),
                     'profit': float(s['total_profit'] or 0)
