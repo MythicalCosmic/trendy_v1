@@ -266,7 +266,7 @@ class Payment(models.Model):
         EXPIRED = "EXPIRED", 'Expired'
     
     user_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
-    test = models.CharField(default="test", max_length=255, null=True, blank=True)
+    # test = models.CharField(default="test", max_length=255, null=True, blank=True)
     gateway = models.ForeignKey(PaymentGateway, on_delete=models.SET_NULL, null=True)
     transaction_id = models.CharField(max_length=100, unique=True, db_index=True)
     payment_id = models.CharField(max_length=100, null=True, blank=True) 
