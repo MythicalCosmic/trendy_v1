@@ -11,21 +11,25 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-mg6s+0fthlol^32e3hk@gh!if*aay7*u(@jb_%gshb^m6*qmqe'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key-change-this')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 
 # Application definition
@@ -49,7 +53,7 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
-ASGI_APPLICATION = 'trendy.asgi.application'
+ASGI_APPLICATION = 'trendy_v1.asgi.application'
 
 
 MIDDLEWARE = [
@@ -85,7 +89,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('172.18.74.18', 6379)],
+            "hosts": [(os.getenv('REDIS_HOST', '127.0.0.1'), int(os.getenv('REDIS_PORT', '6379')))],
         },
     },
 }
@@ -98,8 +102,15 @@ WSGI_APPLICATION = 'trendy_v1.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', ''),
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        } if os.getenv('DB_ENGINE') == 'django.db.backends.mysql' else {},
     }
 }
 
@@ -138,7 +149,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -148,7 +161,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        "LOCATION": "redis://172.18.74.18:6379/1",
+        "LOCATION": f"redis://{os.getenv('REDIS_HOST', '127.0.0.1')}:{os.getenv('REDIS_PORT', '6379')}/1",
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         },
@@ -160,12 +173,6 @@ CACHES = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-
-STATIC_URL = '/static/'
-
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-
 UNFOLD = {
     "SITE_TITLE": "Trendy Admin",
     "SITE_HEADER": "Trendy Admin",
@@ -175,14 +182,8 @@ UNFOLD = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-            "http://localhost:5173",  # Example for a React development server
-            "https://your-frontend-domain.com",
-            # Add other allowed origins as needed
+    origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()
 ]
-import os
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
