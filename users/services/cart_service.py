@@ -25,7 +25,7 @@ class CartService:
     @staticmethod
     def get_cart(user):
         try:
-            cart = Cart.objects.prefetch_related('items__service_id__category_id').get(
+            cart = Cart.objects.prefetch_related('items__service__category').get(
                 user_id=user,
                 status='ACTIVE'
             )
@@ -35,11 +35,11 @@ class CartService:
                 items.append({
                     'id': item.id,
                     'service': {
-                        'id': item.service_id.id,
-                        'name': item.service_id.name,
-                        'slug': item.service_id.slug,
-                        'photo': item.service_id.photo.url if item.service_id.photo else None,
-                        'category': item.service_id.category_id.name
+                        'id': item.service.id,
+                        'name': item.service.name,
+                        'slug': item.service.slug,
+                        'photo': item.service.photo.url if item.service.photo else None,
+                        'category': item.service.category.name
                     },
                     'link': item.link,
                     'quantity': item.quantity,
@@ -204,7 +204,7 @@ class CartService:
     @staticmethod
     def validate_cart(user):
         try:
-            cart = Cart.objects.prefetch_related('items__service_id').get(
+            cart = Cart.objects.prefetch_related('items__service').get(
                 user_id=user,
                 status='ACTIVE'
             )
@@ -213,7 +213,7 @@ class CartService:
             valid_items = []
             
             for item in cart.items.all():
-                service = item.service_id
+                service = item.service
 
                 if service.status != 'ACTIVE':
                     errors.append(f'{service.name} is no longer available')
@@ -265,7 +265,7 @@ class CartService:
     @staticmethod
     def get_cart_summary(user):
         try:
-            cart = Cart.objects.prefetch_related('items__service_id').get(
+            cart = Cart.objects.prefetch_related('items__service').get(
                 user_id=user,
                 status='ACTIVE'
             )

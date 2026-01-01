@@ -17,8 +17,9 @@ class OrderService:
     def create_orders_from_cart(user, payment_transaction_id):
         try:
             cart = Cart.objects.prefetch_related(
-                Prefetch('items', queryset=CartItem.objects.select_related('service_id'))
+            Prefetch('items', queryset=CartItem.objects.select_related('service'))
             ).get(user_id=user, status='ACTIVE')
+
             if cart.total_items == 0:
                 return {'success': False, 'message': 'Cart is empty'}
             orders_to_create = []
@@ -101,18 +102,19 @@ class OrderService:
                 'id': order.id,
                 'order_number': order.order_number,
                 'service': {
-                    'id': order.service_id.id,
-                    'name': order.service_id.name,
-                    'photo': order.service_id.photo.url if order.service_id.photo else None
+                    'id': order.service.id,
+                    'name': order.service.name,
+                    'photo': order.service.photo.url if order.service.photo else None
                 },
                 'link': order.link,
                 'quantity': order.quantity,
                 'price_paid': float(order.price_paid),
-                'status': order.status,
+                'status': order.status.status,
                 'start_count': order.start_count,
                 'remains': order.remains,
-                'submitted_at': order.submitted_at.isoformat(),
-                'completed_at': order.completed_at.isoformat() if order.completed_at else None
+                'submitted_at': order.submitted_at.isoformat() if order.submitted_at else None,
+                'completed_at': order.completed_at.isoformat() if order.completed_at else None,
+
             }
             for order in page_obj.object_list
         ]
@@ -160,7 +162,7 @@ class OrderService:
                     'start_count': order.start_count,
                     'remains': order.remains,
                     'customer_note': order.customer_note,
-                    'submitted_at': order.submitted_at.isoformat(),
+                    'submitted_at': order.submitted_at.isoformat() if order.submitted_at else None,
                     'completed_at': order.completed_at.isoformat() if order.completed_at else None
                 }
             }
@@ -241,7 +243,6 @@ class OrderService:
             'service_id__id', 'service_id__name', 'service_id__category__name'
         )
         
-
         if status:
             queryset = queryset.filter(status=status)
         if user_id:
@@ -264,25 +265,25 @@ class OrderService:
                 'id': order.id,
                 'order_number': order.order_number,
                 'user': {
-                    'id': order.user_id.id,
-                    'email': order.user_id.email,
-                    'name': f"{order.user_id.first_name} {order.user_id.last_name}"
+                    'id': order.user_id.id if order.user_id else None,
+                    'email': order.user_id.email if order.user_id else 'N/A',
+                    'name': f"{order.user_id.first_name} {order.user_id.last_name}" if order.user_id else 'N/A'
                 },
                 'service': {
-                    'id': order.service_id.id,
-                    'name': order.service_id.name,
-                    'category': order.service_id.category.name
+                    'id': order.service_id.id if order.service_id else None,
+                    'name': order.service_id.name if order.service_id else 'N/A',
+                    'category': order.service_id.category.name if (order.service_id and order.service_id.category) else 'N/A'  # ✅ Added null checks
                 },
-                'link': order.link,
+                'link': order.link or '',
                 'quantity': order.quantity,
                 'price_paid': float(order.price_paid),
                 'profit': float(order.profit),
                 'status': order.status,
                 'start_count': order.start_count,
                 'remains': order.remains,
-                'customer_note': order.customer_note,
-                'admin_note': order.admin_note,
-                'submitted_at': order.submitted_at.isoformat(),
+                'customer_note': order.customer_note or '',  # ✅ Added default
+                'admin_note': order.admin_note or '',  # ✅ Added default
+                'submitted_at': order.submitted_at.isoformat() if order.submitted_at else None,  # ✅ Added null check
                 'completed_at': order.completed_at.isoformat() if order.completed_at else None
             }
             for order in page_obj.object_list
@@ -297,6 +298,7 @@ class OrderService:
                 'total_orders': paginator.count
             }
         }
+
     
     @staticmethod
     def get_order_by_id_admin(order_id):
@@ -331,7 +333,7 @@ class OrderService:
                     'remains': order.remains,
                     'customer_note': order.customer_note,
                     'admin_note': order.admin_note,
-                    'submitted_at': order.submitted_at.isoformat(),
+                    'submitted_at': order.submitted_at.isoformat() if order.submitted_at else None,
                     'completed_at': order.completed_at.isoformat() if order.completed_at else None
                 }
             }
@@ -810,14 +812,15 @@ class OrderService:
     @staticmethod
     def get_user_order_history(user, page=1, per_page=20, filters=None):
         queryset = Order.objects.filter(user_id=user).select_related(
-            'service_id__category_id'
-        ).only(
-            'id', 'order_number', 'link', 'quantity', 'price_paid', 
-            'status', 'start_count', 'remains', 'submitted_at', 
-            'completed_at', 'customer_note',
-            'service_id__id', 'service_id__name', 'service_id__photo',
-            'service_id__category_id__name'
-        )
+        'service_id',
+        'service_id__category'  # ✅ CORRECT
+    ).only(
+        'id', 'order_number', 'link', 'quantity', 'price_paid', 
+        'status', 'start_count', 'remains', 'submitted_at', 
+        'completed_at', 'customer_note',
+        'service_id__id', 'service_id__name', 'service_id__photo',
+        'service_id__category__name'  # ✅ Also fix this
+    )
         
         if filters:
             if filters.get('status'):
@@ -864,7 +867,7 @@ class OrderService:
                     'percentage': round(((order.quantity - order.remains) / order.quantity * 100), 2) if order.quantity > 0 else 0
                 },
                 'customer_note': order.customer_note,
-                'submitted_at': order.submitted_at.isoformat(),
+                'submitted_at': order.submitted_at.isoformat() if order.submitted_at else None,
                 'completed_at': order.completed_at.isoformat() if order.completed_at else None,
                 'estimated_completion': OrderService._estimate_completion(order)
             }

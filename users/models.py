@@ -174,7 +174,7 @@ class Cart(models.Model):
 
 class CartItem(models.Model):
     cart_id = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    service_id = models.ForeignKey(Service, on_delete=models.CASCADE)
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
     link = models.URLField(max_length=500)  
     quantity = models.IntegerField()
     price_per_100 = models.DecimalField(max_digits=10, decimal_places=2)
